@@ -24,6 +24,7 @@ def summarize_text(text, num_sentences=3):
 @st.cache_data
 def text_analyzer(text):
     nlp = spacy.load('en_core_web_sm')
+    print("Model loaded successfully!")
     doc = nlp(text)
     allData = [('"Token":{},\n"Lemma":{}'.format(token.text, token.lemma_)) for token in doc]
     return allData
