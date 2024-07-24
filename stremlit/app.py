@@ -6,6 +6,7 @@ from wordcloud import WordCloud
 from textblob import TextBlob
 import neattext as nt
 import spacy
+spacy.load("en_core_web_sm")
 from deep_translator import GoogleTranslator
 from collections import Counter
 import re
