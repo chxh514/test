@@ -5,5 +5,10 @@ spacy==3.7.5
 streamlit==1.36.0
 textblob==0.18.0.post0
 wordcloud==1.9.3
-numpy==1.24.4
-pip install --upgrade deep_translator matplotlib neattext spacy streamlit textblob wordcloud numpy
+numpy==1.23.3
+pandas==1.4.2
+Pillow==10.4.0
+seaborn==0.11.2
+spacy==3.7.5
+spacy==3.7.5
+thinc==8.2.5
