@@ -9,6 +9,4 @@ numpy==1.23.3
 pandas==1.4.2
 Pillow==10.4.0
 seaborn==0.11.2
-spacy==3.7.5
-spacy==3.7.5
 thinc==8.2.5
