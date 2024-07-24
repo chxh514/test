@@ -71,7 +71,7 @@ def main():
 
     st.markdown(subheader_template, unsafe_allow_html=True)
     
-    st.sidebar.image("stream/nlp.jpg", use_column_width=True)
+    st.sidebar.image("streamlit/nlp.jpg", use_column_width=True)
     #製作菜單（下拉式清單）包含四個功能
     activity =["Text Analysis", "Translation", "Sentiment Analysis", "About"]
     choice = st.sidebar.selectbox("Menu", activity)
