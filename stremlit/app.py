@@ -66,7 +66,7 @@ def main():
                 col1, col2 = st.columns(2)
 
                 with col1:
-                    with st.expander("Basic Info", key="basic_info_expander"):
+                    with st.expander("Basic Info"):
                         st.info("Text Stats")
                         word_desc = nt.TextFrame(raw_text).word_stats()
                         result_desc = {"Length of Text": word_desc['Length of Text'],
@@ -75,18 +75,18 @@ def main():
                                        "Num of Stopwords": word_desc['Num of Stopwords']}
                         st.write(result_desc)
 
-                    with st.expander("Stopwords", key="stopwords_expander"):
+                    with st.expander("Stopwords"):
                         st.success("Stop Words List")
                         stop_w = nt.TextExtractor(raw_text).extract_stopwords()
                         st.error(stop_w)
 
                 with col2:
-                    with st.expander("Processed Text", key="processed_text_expander"):
+                    with st.expander("Processed Text"):
                         st.success("Stopwords Excluded Text")
                         processed_text = str(nt.TextFrame(raw_text).remove_stopwords())
                         st.write(processed_text)
 
-                    with st.expander("Plot Wordcloud", key="wordcloud_expander"):
+                    with st.expander("Plot Wordcloud"):
                         st.success("Wordcloud")
                         wordcloud = WordCloud().generate(processed_text)
                         fig = plt.figure(1, figsize=(20, 10))
@@ -101,7 +101,7 @@ def main():
                 col3, col4 = st.columns(2)
 
                 with col3:
-                    with st.expander("Tokens&Lemmas", key="tokens_lemmas_expander"):
+                    with st.expander("Tokens&Lemmas"):
                         st.write("T&K")
                         processed_text_mid = str(nt.TextFrame(raw_text).remove_stopwords())
                         processed_text_mid = str(nt.TextFrame(processed_text_mid).remove_puncts())
@@ -110,7 +110,7 @@ def main():
                         st.json(tandl)
 
                 with col4:
-                    with st.expander("Summarize", key="summarize_expander"):
+                    with st.expander("Summarize"):
                         st.success("Summarize")
                         summary = summarize_text(raw_text)
                         st.success(summary)
