@@ -11,8 +11,8 @@ from collections import Counter
 import re
 
 st.button("Play")
-if st.button("Play"): 
- st.text("Hello world!")
+ if st.button("Play"): 
+  st.text("Hello world!")
 
 today = st.date_input("Today is",datetime.datetime.now())
 st.code("import pandas as pd")
