@@ -16,6 +16,15 @@ if st.button("Play"):
 today = st.date_input("Today is",datetime.datetime.now())
 st.code("import pandas as pd")
 
+radio_but = st.radio("Your Selection", ["A", "B"]) 
+if radio_but == "A": 
+st.info("You selected A") 
+else: 
+st.info("You selected B")
+
+
+
+
 # 定義 summarize_text 函數
 def summarize_text(text, num_sentences=3):
     clean_text = re.sub('[^a-zA-Z]', ' ', text).lower()
