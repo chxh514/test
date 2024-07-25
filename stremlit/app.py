@@ -22,6 +22,9 @@ if radio_but == "A":
 else: 
  st.info("You selected B")
 
+if st.button("Balloons"): 
+ st.balloons()
+
 
 
 
