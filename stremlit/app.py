@@ -11,6 +11,7 @@ from collections import Counter
 import re
 
 today = st.date_input("Today is",datetime.datetime.now())
+st.code("import pandas as pd")
 
 # 定義 summarize_text 函數
 def summarize_text(text, num_sentences=3):
