@@ -10,6 +10,28 @@ from deep_translator import GoogleTranslator
 from collections import Counter
 import re
 
+if st.button("Play"): 
+   st.text("Hello world!")
+if st.checkbox("Checkbox"): 
+   st.text("Checkbox selected")
+radio_but = st.radio("Your Selection", ["A", "B"]) 
+if radio_but == "A": 
+ st.info("You selected A") 
+else: 
+ st.info("You selected B")
+city = st.selectbox("Your City", ["Napoli", "Palermo", "Catania"])
+occupation = st.multiselect("Your Occupation", ["Programmer", "Data Scientist", "IT Consultant", "DBA"])
+Name = st.text_input("Your Name", "Write something…") 
+ st.text(name)
+Age = st.number_input("Input a number")
+message = st.text_area("Your Message", "Write something...")
+select_val = st.slider("Select a Value", 1, 10)
+
+
+
+
+
+
 # 定義 summarize_text 函數
 def summarize_text(text, num_sentences=3):
     clean_text = re.sub('[^a-zA-Z]', ' ', text).lower()
