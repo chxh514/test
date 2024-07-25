@@ -10,7 +10,7 @@ from deep_translator import GoogleTranslator
 from collections import Counter
 import re
 
-hour = st.time_input("The time is",datetime.time(12,30))
+today = st.date_input("Today is",datetime.datetime.now())
 
 # 定義 summarize_text 函數
 def summarize_text(text, num_sentences=3):
