@@ -18,9 +18,9 @@ st.code("import pandas as pd")
 
 radio_but = st.radio("Your Selection", ["A", "B"]) 
 if radio_but == "A": 
-st.info("You selected A") 
+ st.info("You selected A") 
 else: 
-st.info("You selected B")
+ st.info("You selected B")
 
 
 
