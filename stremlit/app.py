@@ -10,6 +10,8 @@ from deep_translator import GoogleTranslator
 from collections import Counter
 import re
 
+hour = st.time_input("The time is",datetime.time(12,30))
+
 # 定義 summarize_text 函數
 def summarize_text(text, num_sentences=3):
     clean_text = re.sub('[^a-zA-Z]', ' ', text).lower()
