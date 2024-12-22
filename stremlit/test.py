@@ -297,7 +297,7 @@ def main():
             specific_instances_C = find_specific_instances(C, patterns_A, patterns_B, pure_patterns_A, pure_patterns_B)
 
         # Adjusted print statement
-        st.write("Instances in C that satisfy the specified conditions:")
+            st.write("Instances in C that satisfy the specified conditions:")
         #for instance in specific_instances_C:
         #    c, score_A, score_B, pure_score_A, pure_score_B = instance
         #    st.write(f"Instance in C: {c},  Score_A ({score_A}),  Score_B ({score_B}),  Pure_Score_A ({pure_score_A}),  Pure_Score_B ({pure_score_B})")
