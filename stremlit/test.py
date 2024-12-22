@@ -285,7 +285,7 @@ def main():
 
 
     with tabs[2]:
-        uploaded_file = st.file_uploader("Upload your CSV file", type=["csv"])
+        #uploaded_file = st.file_uploader("Upload your CSV file", type=["csv"])
         if 'result' not in locals() or result is None:
             st.write("請先在 'Upload Files' 分頁上傳並處理數據文件")
         else:
