@@ -286,16 +286,16 @@ def main():
 
     with tabs[2]:
         uploaded_file = st.file_uploader("Upload your CSV file", type=["csv"])
-        if 'result' not in locals() or result is None:
-            st.write("請先在 'Upload Files' 分頁上傳並處理數據文件")
-        else:
-            acc, A, B, C, IdT, ClassT = result
+            if 'result' not in locals() or result is None:
+                st.write("請先在 'Upload Files' 分頁上傳並處理數據文件")
+            else:
+                acc, A, B, C, IdT, ClassT = result
         
         # Analyze patterns and find pure patterns for A and B
-        patterns_A = find_patterns_updated(A)
-        patterns_B = find_patterns_updated(B)
-        pure_patterns_A = find_pure_patterns(patterns_A, B)
-        pure_patterns_B = find_pure_patterns(patterns_B, A)
+                patterns_A = find_patterns_updated(A)
+                patterns_B = find_patterns_updated(B)
+                pure_patterns_A = find_pure_patterns(patterns_A, B)
+                pure_patterns_B = find_pure_patterns(patterns_B, A)
 
         # Find instances in C that satisfy the specified conditions
         specific_instances_C = find_specific_instances(C, patterns_A, patterns_B, pure_patterns_A, pure_patterns_B)
