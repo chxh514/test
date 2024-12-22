@@ -294,7 +294,7 @@ def main():
             pure_patterns_B = find_pure_patterns(patterns_B, A)
 
         # Find instances in C that satisfy the specified conditions
-        specific_instances_C = find_specific_instances(C, patterns_A, patterns_B, pure_patterns_A, pure_patterns_B)
+            specific_instances_C = find_specific_instances(C, patterns_A, patterns_B, pure_patterns_A, pure_patterns_B)
 
         # Adjusted print statement
         st.write("Instances in C that satisfy the specified conditions:")
