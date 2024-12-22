@@ -284,21 +284,47 @@ def main():
             st.plotly_chart(fig)
 
 
-    with tabs[2]:
-        #uploaded_file = st.file_uploader("Upload your CSV file", type=["csv"])
-        if 'result' not in locals() or result is None:
-            st.write("請先在 'Upload Files' 分頁上傳並處理數據文件")
-        else:
+with tabs[2]:
+    # 检查 result 是否存在或为 None
+    if 'result' not in locals() or result is None:
+        st.write("請先在 'Upload Files' 分頁上傳並處理數據文件")
+    else:
+        # 添加 try-except 以确保 result 解包不会出错
+        try:
+            # 确保 result 解包成功
             acc, A, B, C, IdT, ClassT = result
+            
+            # 确保 C 有值后再进行后续操作
+            if C is not None:
+                # Analyze patterns and find pure patterns for A and B
+                patterns_A = find_patterns_updated(A)
+                patterns_B = find_patterns_updated(B)
+                pure_patterns_A = find_pure_patterns(patterns_A, B)
+                pure_patterns_B = find_pure_patterns(patterns_B, A)
+
+                # Find instances in C that satisfy the specified conditions
+                specific_instances_C = find_specific_instances(C, patterns_A, patterns_B, pure_patterns_A, pure_patterns_B)
+                st.write("Specific instances in C:", specific_instances_C)
+            else:
+                st.write("C 尚未定義，請檢查數據是否正確處理")
+        except ValueError:
+            st.write("無法解包 result，請檢查數據處理邏輯")
+
+    #with tabs[2]:
+        #uploaded_file = st.file_uploader("Upload your CSV file", type=["csv"])
+        #if 'result' not in locals() or result is None:
+            #st.write("請先在 'Upload Files' 分頁上傳並處理數據文件")
+        #else:
+            #acc, A, B, C, IdT, ClassT = result
         
         # Analyze patterns and find pure patterns for A and B
-            patterns_A = find_patterns_updated(A)
-            patterns_B = find_patterns_updated(B)
-            pure_patterns_A = find_pure_patterns(patterns_A, B)
-            pure_patterns_B = find_pure_patterns(patterns_B, A)
+            #patterns_A = find_patterns_updated(A)
+            #patterns_B = find_patterns_updated(B)
+            #pure_patterns_A = find_pure_patterns(patterns_A, B)
+            #pure_patterns_B = find_pure_patterns(patterns_B, A)
 
         # Find instances in C that satisfy the specified conditions
-        specific_instances_C = find_specific_instances(C, patterns_A, patterns_B, pure_patterns_A, pure_patterns_B)
+        #specific_instances_C = find_specific_instances(C, patterns_A, patterns_B, pure_patterns_A, pure_patterns_B)
 
         # Adjusted print statement
         st.write("Instances in C that satisfy the specified conditions:")
