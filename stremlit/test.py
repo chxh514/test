@@ -25,7 +25,11 @@ def identify_pure_sets_numpy(intersections, other_bool, max_value):
         if not np.any(np.all(intersection_bool <= other_bool, axis=-1)):
             pure_sets.append(intersection)
     return pure_sets
-    
+
+def calculate_unique_intersections_parallel(boolean_arrays, num_processes=4):
+    with Pool(num_processes) as pool:
+        all_intersections = pool.map(np.unique, [np.nonzero(row)[0] for row in boolean_arrays])
+    return all_intersections
 
 # Set page configuration with improved styling
 st.set_page_config(
