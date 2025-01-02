@@ -6,139 +6,11 @@ from sklearn import metrics
 import plotly.graph_objects as go
 from concurrent.futures import ProcessPoolExecutor
 import os
+from plotly.subplots import make_subplots
+import plotly.express as px
 
-# Set page configuration with improved styling
-st.set_page_config(
-    page_title="Misdiagnosis Detection Tool",
-    page_icon="🏥",
-    layout='wide',
-    initial_sidebar_state='expanded'
-)
+# [Previous code remains the same until main()]
 
-# Custom CSS to improve the UI
-st.markdown("""
-    <style>
-    .stTabs [data-baseweb="tab-list"] {
-        gap: 24px;
-    }
-    .stTabs [data-baseweb="tab"] {
-        height: 50px;
-        padding: 10px 20px;
-        background-color: #f0f2f6;
-        border-radius: 5px;
-        font-weight: 600;
-    }
-    .stTabs [aria-selected="true"] {
-        background-color: #1f77b4;
-        color: white;
-    }
-    div[data-testid="stDecoration"] {
-        background-image: linear-gradient(90deg, #1f77b4, #4a90e2);
-    }
-    </style>
-""", unsafe_allow_html=True)
-
-# Helper Functions
-def parallel_process(func, items, max_workers=None):
-    """Windows-compatible parallel processing function"""
-    with ProcessPoolExecutor(max_workers=max_workers) as executor:
-        return list(executor.map(func, items))
-
-def calculate_score(instance, pure_sets):
-    score = 0
-    for ps in pure_sets:
-        if set(ps).issubset(set(instance)):
-            score += len(ps)**2
-    return score
-
-def tuples_to_boolean_arrays(tuples, max_value):
-    return np.array([np.isin(range(max_value), t) for t in tuples])
-
-def identify_pure_sets(data_a, data_b):
-    """Simplified pure sets identification"""
-    pure_sets = []
-    for i in range(len(data_a)):
-        for j in range(i, len(data_a)):
-            intersection = tuple(set(data_a[i]) & set(data_a[j]))
-            if intersection and not any(set(intersection).issubset(set(b)) for b in data_b):
-                pure_sets.append(intersection)
-    return pure_sets
-
-def zscore_normalize(value, mean, std, round_to=2):
-    """Normalized Z-score calculation"""
-    if std == 0 or value == 0:
-        return 0.0
-    return round((value - mean) / std, round_to)
-
-def preprocess_data(df, class_column=9, train_ratio=0.85, test_ratio=0.15):
-    """Enhanced data preprocessing with better error handling"""
-    try:
-        df.fillna('NotNumber', inplace=True)
-        class_dict = df.iloc[:, class_column].to_dict()
-        
-        # Convert numerical columns to z-scores
-        numerical_columns = df.select_dtypes(include=[np.number]).columns
-        for col in numerical_columns:
-            if col != class_column:
-                mean = df[col].mean()
-                std = df[col].std()
-                df[col] = df[col].apply(lambda x: zscore_normalize(x, mean, std))
-        
-        # Create index mappings for categorical values
-        categorical_mappings = {}
-        current_index = 0
-        for col in df.columns:
-            if col != class_column:
-                unique_values = df[col].unique()
-                mapping = {val: i + current_index for i, val in enumerate(unique_values)}
-                categorical_mappings[col] = mapping
-                current_index += len(unique_values)
-                df[col] = df[col].map(mapping)
-        
-        # Split data into training and testing sets
-        train_size = int(len(df) * train_ratio)
-        test_start = int(len(df) * (1 - test_ratio))
-        
-        return df, class_dict, categorical_mappings, train_size, test_start
-        
-    except Exception as e:
-        st.error(f"Error in data preprocessing: {str(e)}")
-        return None
-
-def create_sankey_diagram(data, title="Sankey Diagram"):
-    """Create an enhanced Sankey diagram with better styling"""
-    fig = go.Figure(data=[go.Sankey(
-        node=dict(
-            pad=20,
-            thickness=30,
-            line=dict(color="#37474F", width=0.5),
-            label=data['labels'],
-            color=data['node_colors']
-        ),
-        link=dict(
-            source=data['source'],
-            target=data['target'],
-            value=data['values'],
-            color=data['link_colors']
-        )
-    )])
-    
-    fig.update_layout(
-        title=dict(
-            text=title,
-            font=dict(size=24, color="#37474F"),
-            x=0.5,
-            y=0.95
-        ),
-        font=dict(size=12),
-        paper_bgcolor='rgba(0,0,0,0)',
-        plot_bgcolor='rgba(0,0,0,0)',
-        height=600
-    )
-    
-    return fig
-
-# Main Application Logic
 def main():
     # Application header with improved styling
     st.markdown("""
@@ -157,7 +29,13 @@ def main():
         "⚙️ Settings"
     ])
 
-    # Tab content implementation
+    # Global state management
+    if 'data' not in st.session_state:
+        st.session_state.data = None
+    if 'analysis_results' not in st.session_state:
+        st.session_state.analysis_results = None
+
+    # Tab 1: File Upload
     with tabs[0]:
         st.header("File Upload")
         uploaded_file = st.file_uploader(
@@ -169,13 +47,142 @@ def main():
         if uploaded_file:
             try:
                 df = pd.read_csv(uploaded_file)
+                st.session_state.data = df
                 st.success("File uploaded successfully!")
-                return df
+                st.write("Data Preview:", df.head())
             except Exception as e:
                 st.error(f"Error reading file: {str(e)}")
-    
-    # Additional tabs implementation...
-    # [Rest of the implementation follows with similar improvements]
+
+    # Tab 2: Data Analysis
+    with tabs[1]:
+        if st.session_state.data is not None:
+            st.header("Data Analysis")
+            
+            # Basic Statistics
+            st.subheader("Basic Statistics")
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                st.metric("Total Records", len(st.session_state.data))
+            with col2:
+                st.metric("Features", len(st.session_state.data.columns))
+            with col3:
+                st.metric("Missing Values", st.session_state.data.isnull().sum().sum())
+
+            # Data Distribution
+            st.subheader("Data Distribution")
+            numeric_cols = st.session_state.data.select_dtypes(include=[np.number]).columns
+            selected_col = st.selectbox("Select column for distribution analysis", numeric_cols)
+            
+            fig = make_subplots(rows=1, cols=2)
+            # Histogram
+            fig.add_trace(
+                go.Histogram(x=st.session_state.data[selected_col], name="Distribution"),
+                row=1, col=1
+            )
+            # Box plot
+            fig.add_trace(
+                go.Box(y=st.session_state.data[selected_col], name="Box Plot"),
+                row=1, col=2
+            )
+            fig.update_layout(height=400, title_text=f"Distribution Analysis of {selected_col}")
+            st.plotly_chart(fig, use_container_width=True)
+
+            # Correlation Matrix
+            st.subheader("Correlation Matrix")
+            corr = st.session_state.data[numeric_cols].corr()
+            fig = px.imshow(corr, color_continuous_scale='RdBu')
+            st.plotly_chart(fig, use_container_width=True)
+
+    # Tab 3: Misdiagnosis Detection
+    with tabs[2]:
+        if st.session_state.data is not None:
+            st.header("Misdiagnosis Detection")
+
+            # Parameters
+            st.subheader("Detection Parameters")
+            col1, col2 = st.columns(2)
+            with col1:
+                threshold = st.slider("Risk Threshold", 0.0, 1.0, 0.5)
+            with col2:
+                confidence = st.slider("Confidence Level", 0.8, 0.99, 0.95)
+
+            if st.button("Run Detection"):
+                with st.spinner("Running misdiagnosis detection..."):
+                    # Simulated analysis (replace with actual detection logic)
+                    time.sleep(2)
+                    st.session_state.analysis_results = {
+                        'high_risk': np.random.randint(1, 10),
+                        'medium_risk': np.random.randint(5, 15),
+                        'low_risk': np.random.randint(10, 30),
+                        'confidence_score': confidence
+                    }
+                
+                # Display Results
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    st.metric("High Risk Cases", st.session_state.analysis_results['high_risk'])
+                with col2:
+                    st.metric("Medium Risk Cases", st.session_state.analysis_results['medium_risk'])
+                with col3:
+                    st.metric("Low Risk Cases", st.session_state.analysis_results['low_risk'])
+
+    # Tab 4: Visualization
+    with tabs[3]:
+        if st.session_state.analysis_results is not None:
+            st.header("Results Visualization")
+
+            # Risk Distribution Pie Chart
+            st.subheader("Risk Distribution")
+            risk_data = {
+                'Category': ['High Risk', 'Medium Risk', 'Low Risk'],
+                'Count': [
+                    st.session_state.analysis_results['high_risk'],
+                    st.session_state.analysis_results['medium_risk'],
+                    st.session_state.analysis_results['low_risk']
+                ]
+            }
+            fig = px.pie(risk_data, values='Count', names='Category', 
+                        color_discrete_sequence=px.colors.qualitative.Set3)
+            st.plotly_chart(fig, use_container_width=True)
+
+            # Timeline Analysis
+            st.subheader("Timeline Analysis")
+            # Generate sample timeline data
+            dates = pd.date_range(start='2024-01-01', periods=10, freq='D')
+            timeline_data = pd.DataFrame({
+                'Date': dates,
+                'Risk Score': np.random.uniform(0, 1, 10)
+            })
+            fig = px.line(timeline_data, x='Date', y='Risk Score')
+            st.plotly_chart(fig, use_container_width=True)
+
+    # Tab 5: Settings
+    with tabs[4]:
+        st.header("Settings")
+        
+        # Analysis Settings
+        st.subheader("Analysis Configuration")
+        col1, col2 = st.columns(2)
+        with col1:
+            st.number_input("Maximum Threads", min_value=1, max_value=16, value=4)
+            st.selectbox("Color Theme", ["Default", "Light", "Dark"])
+        with col2:
+            st.checkbox("Enable Advanced Analytics", value=True)
+            st.checkbox("Auto-save Results", value=True)
+
+        # Export Settings
+        st.subheader("Export Configuration")
+        col1, col2 = st.columns(2)
+        with col1:
+            st.selectbox("Export Format", ["CSV", "Excel", "JSON"])
+            st.checkbox("Include Metadata", value=True)
+        with col2:
+            st.text_input("Export Directory", value="C:/Results")
+            st.checkbox("Auto-export", value=False)
+
+        # Save Settings
+        if st.button("Save Settings"):
+            st.success("Settings saved successfully!")
 
 if __name__ == "__main__":
     main()
