@@ -304,4 +304,48 @@ def main():
                 'Class': data['ClassT'][idx]
             } for idx, instance in enumerate(specific_instances)])
             
-            st.dataframe(
+            st.dataframe(risk_df)
+
+    # Visualization Tab
+    with tabs[3]:
+        if st.session_state.processed_data is not None and 'specific_instances' in locals():
+            st.header("Visualization")
+            
+            selected_instance = st.selectbox(
+                "Select Patient ID",
+                options=range(len(specific_instances)),
+                format_func=lambda x: f"Patient {x+1}"
+            )
+            
+            if selected_instance is not None:
+                instance_data = specific_instances[selected_instance]
+                
+                # Create and display Sankey diagram
+                sankey_data = create_sankey_data(
+                    instance_data[0],
+                    instance_data[1],
+                    instance_data[2],
+                    instance_data[3],
+                    instance_data[4],
+                    selected_instance
+                )
+                
+                fig = create_sankey_diagram(sankey_data, "Patient Analysis Flow")
+                st.plotly_chart(fig)
+
+    # Settings Tab
+    with tabs[4]:
+        st.header("Settings")
+        
+        # Analysis Settings
+        st.subheader("Analysis Parameters")
+        col1, col2 = st.columns(2)
+        with col1:
+            st.number_input("Processing Threads", 1, 16, 4)
+            st.selectbox("Risk Threshold Method", ["Standard", "Adaptive", "Custom"])
+        with col2:
+            st.slider("Confidence Level", 0.8, 0.99, 0.95)
+            st.checkbox("Enable Advanced Analytics", True)
+
+if __name__ == "__main__":
+    main()
