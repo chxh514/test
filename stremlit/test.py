@@ -9,6 +9,11 @@ import os
 from plotly.subplots import make_subplots
 import plotly.express as px
 
+def calculate_unique_intersections_parallel(boolean_arrays, num_processes=4):
+    with Pool(num_processes) as pool:
+        all_intersections = pool.map(np.unique, [np.nonzero(row)[0] for row in boolean_arrays])
+    return all_intersections
+
 # [Previous code remains the same until main()]
 
 def main():
