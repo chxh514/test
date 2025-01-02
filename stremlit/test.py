@@ -2,7 +2,7 @@ import streamlit as st
 import numpy as np
 import pandas as pd
 import time
-from collections import Counter
+from sklearn import metrics
 import plotly.graph_objects as go
 from concurrent.futures import ProcessPoolExecutor
 import os
@@ -56,7 +56,125 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# [Previous helper functions remain the same]
+def Zscore(v):
+    """計算 Z-score，處理零值的特殊情況"""
+    if v == 0.0:
+        return 0.0
+    else:
+        return v
+
+def DataPreprocessing(uploaded_file):
+    """數據預處理函數"""
+    start_time = time.time()
+
+    # 定義預處理參數
+    rat1 = 0.85  # 訓練集比例
+    rat2 = 0.15  # 測試集比例
+    rof = 2      # 四捨五入位數
+    ski = 1      # 跳過的行數
+
+    try:
+        # 讀取 CSV 文件
+        df = pd.read_csv(uploaded_file, sep=',', header=None, skiprows=ski)
+        
+        st.write(f"DataFrame shape: {df.shape}")
+        st.write("DataFrame preview:", df.head())
+
+        cla = 9  # 分類列的索引
+
+        if cla >= df.shape[1]:
+            st.error(f"Error: Column index {cla} exceeds the number of columns ({df.shape[1]})")
+            return None
+
+        # 處理缺失值
+        df.fillna(value='NotNumber', inplace=True)
+        st.write(f"Process-1_Missing Value: Row={df.shape[0]}, Column={df.shape[1]}")
+        st.write(f"DataFrame (with column-{cla} 'Class')", df.head())
+        
+        # 初始化變量
+        acc = 0  # 累計唯一項目數
+        itr1 = int(df.shape[0] * rat1)  # 訓練集大小
+        itr2 = int(df.shape[0] * rat2)  # 測試集大小
+        D_IdClass = df.iloc[:, cla].to_dict()  # 類別字典
+        
+        # 轉置數據並準備處理
+        L = df.T.values.tolist()
+        R = []  # 存儲處理後的數據
+        U = []  # 存儲唯一值映射
+
+        # 處理每一列數據
+        for c in [L[l] for l in range(len(L)-1)]:
+            D_Num = {}  # 數值型數據
+            D_Cat = {}  # 分類型數據
+            L_All = [0 for _ in c]  # 初始化結果列表
+            
+            # 分離數值型和分類型數據
+            for e in range(len(c)):
+                if isinstance(c[e], (int, float)) and not isinstance(c[e], bool):
+                    D_Num[e] = c[e]
+                else:
+                    D_Cat[e] = c[e]
+            
+            # 處理數值型數據 - 計算 Z-score
+            if D_Num:
+                L_Num = list(D_Num.values())
+                ave = np.mean(L_Num)
+                std = np.std(L_Num) if len(L_Num) > 1 else 1
+                
+                for n in {v[0]: Zscore(round((v[1]-ave)/std, rof)) for v in D_Num.items()}.items():
+                    L_All[n[0]] = n[1]
+            
+            # 處理分類型數據
+            for i in D_Cat.items():
+                L_All[i[0]] = i[1]
+            
+            R.append(L_All)
+        
+        # 創建數據框
+        df = pd.DataFrame(R).T
+        st.write(f"Process-2_Z-Score: Row={df.shape[0]}, Column={df.shape[1]}")
+        st.write("DataFrame", df.head())
+
+        # 創建分類值的索引映射
+        for r in R:
+            u = set(r)
+            d = {e: i + acc for i, e in enumerate(u)}
+            acc += len(u)
+            U.append(d)
+        
+        # 應用索引映射
+        R = [tuple(U[i][e] for e in r) for i, r in enumerate(R)]
+        df = pd.DataFrame(R).T
+        st.write(f"Process-3_Index for Efficiency: UniqueItems={acc}, Row={df.shape[0]}, Column={df.shape[1]}")
+        st.write("DataFrame", df.head())
+
+        # 處理類別信息
+        V = [tuple(v) for v in df.values.tolist()]
+        W = {w[0]: set() for w in pd.DataFrame(R).T.iloc[:, :].value_counts().to_dict().items()}
+        for v in range(len(V)):
+            W[V[v]].add(D_IdClass[v])
+        
+        # 分離正常實例和矛盾實例
+        N = [(v, V[v], D_IdClass[v]) for v in range(len(V)) if len(W[V[v]]) == 1]
+        E = [(v, V[v], D_IdClass[v]) for v in range(len(V)) if len(W[V[v]]) > 1]
+        st.write(f"Process-4_Contradiction (C) Instance (I): Normal-I={len(N)}, C-I={len(E)}")
+
+        # 分離訓練集和測試集
+        G = list(set([i[2] for i in N]))
+        A = [i for i in N if i[0] < itr1 and i[2] == G[0]]
+        B = [i for i in N if i[0] < itr1 and i[2] == G[1]]
+        C = [i for i in N if i[0] >= itr2]
+        
+        end_time = time.time()
+        st.write(f"Classes: {set([i[2] for i in C])}")
+        st.write(f"I for TEST with Respective Classes: {dict(Counter([i[2] for i in C]))}")
+        st.write(f"DataPreprocessing Complete! Time={end_time - start_time:.2f}s")
+
+        return acc, [i[1] for i in A], [i[1] for i in B], [i[1] for i in C], [i[0] for i in C], [i[2] for i in C]
+
+    except Exception as e:
+        st.error(f"Error in DataPreprocessing: {str(e)}")
+        return None
 
 def find_patterns_updated(data):
     pattern_counts = defaultdict(lambda: [0, set()])
@@ -186,48 +304,4 @@ def main():
                 'Class': data['ClassT'][idx]
             } for idx, instance in enumerate(specific_instances)])
             
-            st.dataframe(risk_df)
-
-    # Visualization Tab
-    with tabs[3]:
-        if st.session_state.processed_data is not None and 'specific_instances' in locals():
-            st.header("Visualization")
-            
-            selected_instance = st.selectbox(
-                "Select Patient ID",
-                options=range(len(specific_instances)),
-                format_func=lambda x: f"Patient {x+1}"
-            )
-            
-            if selected_instance is not None:
-                instance_data = specific_instances[selected_instance]
-                
-                # Create and display Sankey diagram
-                sankey_data = create_sankey_data(
-                    instance_data[0],
-                    instance_data[1],
-                    instance_data[2],
-                    instance_data[3],
-                    instance_data[4],
-                    selected_instance
-                )
-                
-                fig = create_sankey_diagram(sankey_data, "Patient Analysis Flow")
-                st.plotly_chart(fig)
-
-    # Settings Tab
-    with tabs[4]:
-        st.header("Settings")
-        
-        # Analysis Settings
-        st.subheader("Analysis Parameters")
-        col1, col2 = st.columns(2)
-        with col1:
-            st.number_input("Processing Threads", 1, 16, 4)
-            st.selectbox("Risk Threshold Method", ["Standard", "Adaptive", "Custom"])
-        with col2:
-            st.slider("Confidence Level", 0.8, 0.99, 0.95)
-            st.checkbox("Enable Advanced Analytics", True)
-
-if __name__ == "__main__":
-    main()
+            st.dataframe(
