@@ -1,190 +1,247 @@
 import streamlit as st
-import datetime
+from collections import Counter, defaultdict
+import numpy as np
+import pandas as pd
 import time
-import matplotlib.pyplot as plt
-from wordcloud import WordCloud
-from textblob import TextBlob
-import neattext as nt
-import spacy
-from deep_translator import GoogleTranslator
-from collections import Counter
-import re
+from sklearn import metrics
+import plotly.graph_objects as go
+from multiprocessing import Pool
 
-if st.button("Play"):
-    st.text("Hello world!")
+st.set_page_config(page_title="Misdiagnosis Detection Tool", page_icon="m.jpg", layout='wide', initial_sidebar_state='expanded')
 
-today = st.date_input("Today is",datetime.datetime.now())
-st.code("import pandas as pd")
+# Convert tuples to boolean arrays
+def tuples_to_boolean_arrays(tuples, max_value):
+    return np.array([np.isin(range(max_value), t) for t in tuples])
 
-radio_but = st.radio("Your Selection", ["A", "B"]) 
-if radio_but == "A": 
- st.info("You selected A") 
-else: 
- st.info("You selected B")
+# Function to calculate score
+def calculate_score(instance, pure_sets):
+    score = 0
+    for ps in pure_sets:
+        if set(ps).issubset(set(instance)):
+            score += len(ps)**2
+    return score
 
-if st.button("Balloons"): 
- st.balloons()
+# Parallel version of score calculation
+def calculate_scores_parallel(instances, pure_sets, num_processes=4):
+    with Pool(num_processes) as pool:
+        scores = pool.starmap(calculate_score, [(instance, pure_sets) for instance in instances])
+    return scores
 
+# Function to identify pure sets directly in numpy array format
+def identify_pure_sets_numpy(intersections, other_bool, max_value):
+    pure_sets = []
+    for intersection in intersections:
+        intersection_bool = np.isin(range(max_value), intersection)
+        if not np.any(np.all(intersection_bool <= other_bool, axis=-1)):
+            pure_sets.append(intersection)
+    return pure_sets
 
+# Function to calculate unique intersections for a single array
+def calculate_unique_intersections_single(array):
+    intersections = np.bitwise_and(array[:, None, :], array)
+    unique_intersections = set()
+    for i in range(intersections.shape[0]):
+        for j in range(intersections.shape[1]):
+            intersection = tuple(np.where(intersections[i, j])[0])
+            unique_intersections.add(intersection)
+    return unique_intersections
 
+# Parallel version of calculate_unique_intersections
+def calculate_unique_intersections_parallel(bool_arrays, num_processes=4):
+    with Pool(num_processes) as pool:
+        results = pool.map(calculate_unique_intersections_single, [bool_arrays])
+    return set.union(*results)
 
-# 定義 summarize_text 函數
-def summarize_text(text, num_sentences=3):
-    clean_text = re.sub('[^a-zA-Z]', ' ', text).lower()
-    words = clean_text.split()
-    word_freq = Counter(words)
-    sorted_words = sorted(word_freq, key=word_freq.get, reverse=True)
-    top_words = sorted_words[:num_sentences]
-    summary = ' '.join(top_words)
-    return summary
+def find_patterns_updated(data):
+    pattern_counts = defaultdict(lambda: [0, set()])
+    for i in range(len(data)):
+        for j in range(i, len(data)):
+            intersection = tuple(set(data[i]) & set(data[j]))
+            if intersection:
+                pattern_counts[intersection][0] += len(intersection)**2
+                pattern_counts[intersection][1].update([i, j])
+    return {k: (sum([v[0]]), set(v[1])) for k, v in pattern_counts.items()}
 
-# 定義 text_analyzer 函數
-@st.cache_data
-def text_analyzer(text):
-    nlp = spacy.load('en_core_web_sm')
-    print("Model loaded successfully!")
-    doc = nlp(text)
-    allData = [('"Token":{},\n"Lemma":{}'.format(token.text, token.lemma_)) for token in doc]
-    return allData
+# Function to find pure patterns in one dataset with respect to another
+def find_pure_patterns(patterns, other_data):
+    pure_patterns = {}
+    other_sets = [set(item) for item in other_data]
+    for pattern, data in patterns.items():
+        pattern_set = set(pattern)
+        if not any(pattern_set.issubset(other_set) for other_set in other_sets):
+            pure_patterns[pattern] = data
+    return pure_patterns
 
-# 定義 main 函數
-def main():
-    """使用 Streamlit 構建的 NLP 網路應用程序"""
+# Function to get the score of an instance based on patterns
+def get_score_of_instance(instance, patterns):
+    score = 0
+    pattern_in_ = []
+    instance_set = set(instance)
+    for pattern, data in patterns.items():
+        if set(pattern).issubset(instance_set):
+            score += data[0]
+            pattern_in_.append([set(pattern), data[0]])
+    return score, pattern_in_
 
-    title_template = """
-    <div style="background-color:blue; padding:8px;">
-    <h1 style="color:cyan">NLP Web App</h1>
-    </div>
-    """
-    st.markdown(title_template, unsafe_allow_html=True)
+# Function to get the pure score of an instance based on pure patterns
+def get_pure_score_of_instance(instance, pure_patterns):
+    pure_score = 0
+    pure_pattern_in_ = []
+    instance_set = set(instance)
+    for pattern, data in pure_patterns.items():
+        if set(pattern).issubset(instance_set):
+            pure_score += data[0]
+            pure_pattern_in_.append([set(pattern), data[0]])
+    return pure_score, pure_pattern_in_
 
-    subheader_template = """
-    <div style="background-color:cyan; padding:8px;">
-    <h3 style="color:blue">Powered by Streamlit</h1>
-    </div>
-    """
-    st.markdown(subheader_template, unsafe_allow_html=True)
+# Function to find instances in C that satisfy the specified conditions
+def find_specific_instances(C, patterns_A, patterns_B, pure_patterns_A, pure_patterns_B):
+    satisfying_instances = []
 
-    st.sidebar.image("stremlit/nlp.jpg", use_column_width=True)
+    for c in C:
+        score_A = get_score_of_instance(c, patterns_A)
+        score_B = get_score_of_instance(c, patterns_B)
+        pure_score_A = get_pure_score_of_instance(c, pure_patterns_A)
+        pure_score_B = get_pure_score_of_instance(c, pure_patterns_B)
 
-    activity = ["Text Analysis", "Translation", "Sentiment Analysis", "About"]
-    choice = st.sidebar.selectbox("Menu", activity, key="menu_selectbox")
+        if (score_A[0] > score_B[0] or pure_score_A[0] < pure_score_B[0]) or (score_A[0] < score_B[0] or pure_score_A[0] > pure_score_B[0]):
+            satisfying_instances.append((c, score_A, score_B, pure_score_A, pure_score_B))
 
-    if choice == "Text Analysis":
-        st.subheader("Text Analysis")
-        st.write("")
+    return satisfying_instances
 
-        raw_text = st.text_area("Write something", "Enter a text in English...", height=200, key="text_area")
+def DataPreprocessing(uploaded_file):
+    start_time = time.time()
 
-        if st.button("Analyze", key="analyze_button"):
-            if len(raw_text) == 0:
-                st.warning("Enter a text...")
-            else:
-                st.info("Basic Functions")
+    df = pd.read_csv(uploaded_file, sep=',', header=None, skiprows=ski)
+    
+    st.write(f"DataFrame shape: {df.shape}")
+    st.write(f"DataFrame preview:", df.head())
 
-                col1, col2 = st.columns(2)
+    cla = 9  # 假设第9列是分类列
 
-                with col1:
-                    with st.expander("Basic Info"):
-                        st.info("Text Stats")
-                        word_desc = nt.TextFrame(raw_text).word_stats()
-                        result_desc = {"Length of Text": word_desc['Length of Text'],
-                                       "Num of Vowels": word_desc['Num of Vowels'],
-                                       "Num of Consonants": word_desc['Num of Consonants'],
-                                       "Num of Stopwords": word_desc['Num of Stopwords']}
-                        st.write(result_desc)
+    if cla >= df.shape[1]:
+        st.error(f"Error: cla ({cla}) exceeds the number of columns in the DataFrame ({df.shape[1]})")
+        return None
 
-                    with st.expander("Stopwords"):
-                        st.success("Stop Words List")
-                        stop_w = nt.TextExtractor(raw_text).extract_stopwords()
-                        st.error(stop_w)
+    df.fillna(value='NotNumber', inplace=True)
+    st.write(f"Process-1_Missing Value: Row={df.shape[0]}, Column={df.shape[1]}")
+    st.write(f"DataFrame (with column-{cla} 'Class')", df.head())
+    
+    acc, itr1, itr2, D_IdClass = 0, df.shape[0] * rat1, df.shape[0] * rat2, df.iloc[:, cla].to_dict()
+    L, R, U = df.T.values.tolist(), [], []    
 
-                with col2:
-                    with st.expander("Processed Text"):
-                        st.success("Stopwords Excluded Text")
-                        processed_text = str(nt.TextFrame(raw_text).remove_stopwords())
-                        st.write(processed_text)
+    for c in [L[l] for l in range(len(L)-1)]:
+        D_Num, D_Cat, L_All = dict(), dict(), [0 for _ in c]
+        for e in range(len(c)):
+            if type(c[e]) != str: D_Num[e] = c[e]
+            else: D_Cat[e] = c[e]
+        L_Num = list(D_Num.values())
+        ave, std = np.mean(L_Num), np.std(L_Num)
+        for n in {v[0]:Zscore(round((v[1]-ave)/std, rof)) for v in D_Num.items()}.items(): L_All[n[0]] = n[1]
+        for i in D_Cat.items(): L_All[i[0]] = i[1]
+        R.append(L_All)
+    
+    df = pd.DataFrame(R).T
+    st.write(f"Process-2_Z-Score: Row={df.shape[0]}, Column={df.shape[1]}")
+    st.write(f"DataFrame", df.head())
 
-                    with st.expander("Plot Wordcloud"):
-                        st.success("Wordcloud")
-                        wordcloud = WordCloud().generate(processed_text)
-                        fig = plt.figure(1, figsize=(20, 10))
-                        plt.imshow(wordcloud, interpolation='bilinear')
-                        plt.axis('off')
-                        st.pyplot(fig)
+    for r in R:
+        u = set(r)
+        d = {e: i + acc for i, e in enumerate(u)}
+        acc += len(u)
+        U.append(d)
+    
+    R = [tuple(U[i][e] for e in r) for i, r in enumerate(R)]
+    df = pd.DataFrame(R).T
+    st.write(f"Process-3_Index for Efficiency: UniqueItems={acc}, Row={df.shape[0]}, Column={df.shape[1]}")
+    st.write(f"DataFrame", df.head())
 
-                st.write("")
-                st.write("")
-                st.info("Advanced Features")
+    V, W = [tuple(v) for v in df.values.tolist()], {w[0]: set() for w in pd.DataFrame(R).T.iloc[:, :].value_counts().to_dict().items()}
+    for v in range(len(V)): W[V[v]].add(D_IdClass[v])
+    
+    N, E = [(v, V[v], D_IdClass[v]) for v in range(len(V)) if len(W[V[v]]) == 1], [(v, V[v], D_IdClass[v]) for v in range(len(V)) if len(W[V[v]]) > 1]
+    st.write(f"Process-4_Contradiction (C) Instance (I): Amounts of Normal-I={len(N)}, Amounts of C-I={len(E)}")
 
-                col3, col4 = st.columns(2)
+    G = list(set([i[2] for i in N]))    
+    A = [i for i in N if i[0] < itr1 and i[2] == G[0]]
+    B = [i for i in N if i[0] < itr1 and i[2] == G[1]]
+    C = [i for i in N if i[0] >= itr2]
+    
+    end_time = time.time()
+    st.write(f"Classes: {set([i[2] for i in C])}")
+    st.write(f"I for TEST with Respective Classes: {dict(Counter([i[2] for i in C]))}")
+    st.write(f"DataPreprocessing Complete! Time={end_time - start_time}, Train={rat1}%(first~{itr1}), Test={1-rat1}%({itr2}~end)")
 
-                with col3:
-                    with st.expander("Tokens&Lemmas"):
-                        st.write("T&K")
-                        processed_text_mid = str(nt.TextFrame(raw_text).remove_stopwords())
-                        processed_text_mid = str(nt.TextFrame(processed_text_mid).remove_puncts())
-                        processed_text_fin = str(nt.TextFrame(processed_text_mid).remove_special_characters())
-                        tandl = text_analyzer(processed_text_fin)
-                        st.json(tandl)
+    return acc, [i[1] for i in A], [i[1] for i in B], [i[1] for i in C], [i[0] for i in C], [i[2] for i in C]
 
-                with col4:
-                    with st.expander("Summarize"):
-                        st.success("Summarize")
-                        summary = summarize_text(raw_text)
-                        st.success(summary)
+def Method(acc, A, B, C, IdT, ClassT):
+    start_time = time.time()
+    A_bool, B_bool = tuples_to_boolean_arrays(A, acc), tuples_to_boolean_arrays(B, acc)
+    SA = calculate_scores_parallel(C, identify_pure_sets_numpy(calculate_unique_intersections_parallel(A_bool), B_bool, acc))
+    SB = calculate_scores_parallel(C, identify_pure_sets_numpy(calculate_unique_intersections_parallel(B_bool), A_bool, acc))
+    
+    end_time = time.time()
+    
+    st.write(f"Method Complete! Time={end_time - start_time}, len(scores_A)={len(SA)}, len(scores_B)={len(SB)}")
+    
+    result_df = pd.DataFrame({'ID': IdT, 'Class': ClassT, 'A': SA, 'B': SB, 'Items': C})
+    st.write("Result DataFrame", result_df)
+    
+    csv = result_df.to_csv(index=False)
+    st.download_button(label="Download Results as CSV", data=csv, file_name='S.csv', mime='text/csv')
 
-    if choice == "Translation":
-        st.subheader("Translation")
-        st.write("")
-        st.write("")
-        raw_text = st.text_area("Original Text", "Write something to be translated...", height=200, key="translation_text_area")
-        if len(raw_text) < 3:
-            st.warning("Please provide a text with at least 3 characters...")
-        else:
-            target_lang = st.selectbox("Target Language", ["German","Chinese","English","Spanish", "French", "Italian"], key="target_language_selectbox")
-            if target_lang == "German":
-                target_lang = "de"
-            elif target_lang == "Chinese":
-                target_lang = "zh-TW"
-            elif target_lang == "English":
-                target_lang = "en"
-            elif target_lang == "Spanish":
-                target_lang = "es"
-            elif target_lang == "French":
-                target_lang = "fr"
-            else:
-                target_lang = "it"
+def Zscore(v):
+    if v == 0.0:
+        return 0.0
+    else:
+        return v
 
-            if st.button("Translate", key="translate_button"):
-                translator = GoogleTranslator(source='auto', target=target_lang)
-                translated_text = translator.translate(raw_text)
-                st.write(translated_text)
+def DataPreprocessing(uploaded_file):
+    start_time = time.time()
 
-    if choice == "Sentiment Analysis":
-        st.subheader("Sentiment Analysis")
-        st.write("")
-        st.write("")
-        raw_text = st.text_area("Text to analyse", "Enter a text here....", height=200, key="sentiment_text_area")
-        if st.button("Evaluate", key="evaluate_button"):
-            if len(raw_text) == 0:
-                st.warning("Enter a text...")
-            else:
-                blob = TextBlob(raw_text)
-                st.info("Sentiment Analysis")
-                st.write(blob.sentiment)
-                st.write("")
+    # 定義 rat1, rat2 和 rof
+    rat1 = 0.85  # 例如，80% 的數據用於訓練
+    rat2 = 0.15  # 例如，15% 的數據用於測試
+    rof = 2     # 例如，四捨五入到小數點後兩位
+    ski= 0
 
-    if choice == "About":
-        st.subheader("About")
-        st.write("")
+    df = pd.read_csv(uploaded_file, sep=',', header=None, skiprows=1)
+    
+    st.write(f"DataFrame shape: {df.shape}")
+    st.write(f"DataFrame preview:", df.head())
 
-        st.markdown("""
-        ### NLP Web App made with Streamlit
+    cla = 9  # 假设第6列是分类列
 
-        for info:
-        - [streamlit](https://streamlit.io)
-        """)
+    if cla >= df.shape[1]:
+        st.error(f"Error: cla ({cla}) exceeds the number of columns in the DataFrame ({df.shape[1]})")
+        return None
 
-if __name__ == "__main__":
-    main()
+    df.fillna(value='NotNumber', inplace=True)
+    st.write(f"Process-1_Missing Value: Row={df.shape[0]}, Column={df.shape[1]}")
+    st.write(f"DataFrame (with column-{cla} 'Class')", df.head())
+    
+    acc, itr1, itr2, D_IdClass = 0, df.shape[0] * rat1, df.shape[0] * rat2, df.iloc[:, cla].to_dict()
+    L, R, U = df.T.values.tolist(), [], []    
+
+    for c in [L[l] for l in range(len(L)-1)]:
+        D_Num, D_Cat, L_All = dict(), dict(), [0 for _ in c]
+        for e in range(len(c)):
+            if type(c[e]) != str: D_Num[e] = c[e]
+            else: D_Cat[e] = c[e]
+        L_Num = list(D_Num.values())
+        ave, std = np.mean(L_Num), np.std(L_Num)
+        for n in {v[0]:Zscore(round((v[1]-ave)/std, rof)) for v in D_Num.items()}.items(): L_All[n[0]] = n[1]
+        for i in D_Cat.items(): L_All[i[0]] = i[1]
+        R.append(L_All)
+    
+    df = pd.DataFrame(R).T
+    st.write(f"Process-2_Z-Score: Row={df.shape[0]}, Column={df.shape[1]}")
+    st.write(f"DataFrame", df.head())
+
+    for r in R:
+        u = set(r)
+        d = {e: i + acc for i, e in enumerate(u)}
+        acc += len(u)
+        U.append(d)
+    
+    R = [tuple(U[i][e] for e in r) for i,
