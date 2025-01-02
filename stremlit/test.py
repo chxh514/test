@@ -234,6 +234,23 @@ def main():
     if 'analysis_results' not in st.session_state:
         st.session_state.analysis_results = None
 
+def Method(acc, A, B, C, IdT, ClassT):
+    start_time = time.time()
+    A_bool, B_bool = tuples_to_boolean_arrays(A, acc), tuples_to_boolean_arrays(B, acc)
+    SA = calculate_scores_parallel(C, identify_pure_sets_numpy(calculate_unique_intersections_parallel(A_bool), B_bool, acc))
+    SB = calculate_scores_parallel(C, identify_pure_sets_numpy(calculate_unique_intersections_parallel(B_bool), A_bool, acc))
+    
+    end_time = time.time()
+    
+    st.write(f"Method Complete! Time={end_time - start_time}, len(scores_A)={len(SA)}, len(scores_B)={len(SB)}")
+    
+    result_df = pd.DataFrame({'ID': IdT, 'Class': ClassT, 'A': SA, 'B': SB, 'Items': C})
+    st.write("Result DataFrame", result_df)
+    
+    csv = result_df.to_csv(index=False)
+    st.download_button(label="Download Results as CSV", data=csv, file_name='S.csv', mime='text/csv')
+
+    
     # Upload Files Tab
     with tabs[0]:
         uploaded_file = st.file_uploader("Upload your CSV file", type=["csv"])
