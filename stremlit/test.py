@@ -2,7 +2,7 @@ import streamlit as st
 import numpy as np
 import pandas as pd
 import time
-from sklearn import metrics
+from collections import Counter
 import plotly.graph_objects as go
 from concurrent.futures import ProcessPoolExecutor
 import os
