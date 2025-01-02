@@ -10,6 +10,9 @@ from plotly.subplots import make_subplots
 import plotly.express as px
 from collections import Counter, defaultdict
 
+def tuples_to_boolean_arrays(tuples, max_value):
+    return np.array([np.isin(range(max_value), t) for t in tuples])
+
 # Set page configuration with improved styling
 st.set_page_config(
     page_title="Misdiagnosis Detection Tool",
