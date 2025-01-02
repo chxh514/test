@@ -18,6 +18,15 @@ def calculate_scores_parallel(instances, pure_sets, num_processes=4):
         scores = pool.starmap(calculate_score, [(instance, pure_sets) for instance in instances])
     return scores
 
+def identify_pure_sets_numpy(intersections, other_bool, max_value):
+    pure_sets = []
+    for intersection in intersections:
+        intersection_bool = np.isin(range(max_value), intersection)
+        if not np.any(np.all(intersection_bool <= other_bool, axis=-1)):
+            pure_sets.append(intersection)
+    return pure_sets
+    
+
 # Set page configuration with improved styling
 st.set_page_config(
     page_title="Misdiagnosis Detection Tool",
