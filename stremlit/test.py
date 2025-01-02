@@ -283,7 +283,15 @@ def main():
                 st.metric("Unique Classes", len(set(data['ClassT'])))
             with col3:
                 st.metric("Features", len(data['C'][0]) if data['C'] else 0)
-
+            def get_score_of_instance(instance, patterns):
+                score = 0
+                pattern_in_ = []
+                instance_set = set(instance)
+                for pattern, data in patterns.items():
+                    if set(pattern).issubset(instance_set):
+                        score += data[0]
+                        pattern_in_.append([set(pattern), data[0]])
+                return score, pattern_in_
             # ROC Curve
             ANS = np.array(data['ClassT'])
             ScoreA = np.array([get_score_of_instance(c, find_patterns_updated(data['A']))[0] for c in data['C']])
