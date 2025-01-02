@@ -13,6 +13,11 @@ from collections import Counter, defaultdict
 def tuples_to_boolean_arrays(tuples, max_value):
     return np.array([np.isin(range(max_value), t) for t in tuples])
 
+def calculate_scores_parallel(instances, pure_sets, num_processes=4):
+    with Pool(num_processes) as pool:
+        scores = pool.starmap(calculate_score, [(instance, pure_sets) for instance in instances])
+    return scores
+
 # Set page configuration with improved styling
 st.set_page_config(
     page_title="Misdiagnosis Detection Tool",
