@@ -14,6 +14,15 @@ def calculate_unique_intersections_parallel(boolean_arrays, num_processes=4):
         all_intersections = pool.map(np.unique, [np.nonzero(row)[0] for row in boolean_arrays])
     return all_intersections
 
+def find_specific_instances(data, patterns_A, patterns_B, pure_patterns_A, pure_patterns_B):
+    specific_instances = []
+    for i, instance in enumerate(data):
+        score_A = get_score_of_instance(instance, pure_patterns_A)
+        score_B = get_score_of_instance(instance, pure_patterns_B)
+        if score_A[0] > 0 or score_B[0] > 0:
+            specific_instances.append((instance, patterns_A, patterns_B, score_A, score_B))
+    return specific_instances
+
 # [Previous code remains the same until main()]
 
 def main():
