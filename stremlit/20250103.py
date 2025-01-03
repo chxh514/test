@@ -9,7 +9,6 @@ import os
 from plotly.subplots import make_subplots
 import plotly.express as px
 from collections import Counter, defaultdict
-from multiprocessing import Pool
 
 # Set page configuration with improved styling
 st.set_page_config(
@@ -330,19 +329,25 @@ def highlight_risk(row):
         return ['background-color: #aec6cf'] * len(row)  # 柔和的藍色
     return [''] * len(row)
 
-def create_sankey_data(instance_data, score_A, score_B, pure_score_A, pure_score_B, index):
-    source = [0, 0] + [1] * len(score_A[1]) + [2] * len(score_B[1])
-    target = [1, 2] + list(range(3, 3 + len(score_A[1]))) + list(range(3 + len(score_A[1]), 3 + len(score_A[1]) + len(score_B[1])))
-    value = [score_A[0], score_B[0]] + [i[-1] for i in score_A[1]] + [i[-1] for i in score_B[1]]
-    label = [f'PATIENT:{index+1}', 'Positive P', 'Negative N'] + [f'P{i[0]}' for i in score_A[1]] + [f'N{i[0]}' for i in score_B[1]]
-    
-    return {
-        'source': source,
-        'target': target,
-        'values': value,
-        'labels': label,
-        'node_colors': ['#ECEFF1', '#F8BBD0', '#DCEDC8'] + ['#FFEBEE'] * len(score_A[1]) + ['#F1F8E9'] * len(score_B[1]),
-        'link_colors': ['#F8BBD0', '#DCEDC8'] + ['#FFEBEE'] * len(score_A[1]) + ['#F1F8E9'] * len(score_B[1])}
+def create_sankey_diagram(sankey_data, title):
+    fig = go.Figure(data=[go.Sankey(
+        node=dict(
+            pad=15,
+            thickness=20,
+            line=dict(color="black", width=0.5),
+            label=sankey_data['labels'],
+            color=sankey_data['node_colors']
+        ),
+        link=dict(
+            source=sankey_data['source'],
+            target=sankey_data['target'],
+            value=sankey_data['values'],
+            color=sankey_data['link_colors']
+        )
+    )])
+
+    fig.update_layout(title_text=title, font_size=10)
+    return fig
 
 def main():
     st.markdown("""
