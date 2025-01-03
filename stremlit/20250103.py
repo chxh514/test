@@ -377,6 +377,7 @@ def main():
 
     # Upload Files Tab
     with tabs[0]:
+        st.markdown("<h3 style='font-weight:bold;'>File Upload</h3>", unsafe_allow_html=True)
         uploaded_file = st.file_uploader("File Upload", type=["csv"])
         
         if uploaded_file is not None:
