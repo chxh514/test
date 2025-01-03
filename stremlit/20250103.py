@@ -538,9 +538,5 @@ def main():
             st.write("Saved Settings:")
             st.json(settings)  # Display saved settings in JSON format
 
-        # Save Settings
-        if st.button("Save Settings"):
-            st.success("Settings saved successfully!")
-
 if __name__ == "__main__":
     main()
