@@ -10,6 +10,7 @@ import os
 from plotly.subplots import make_subplots
 import plotly.express as px
 from collections import Counter, defaultdict
+from stremlit.test import preprocess_data
 
 # [Previous code remains the same until main()]
 
@@ -278,6 +279,56 @@ def main():
         if st.session_state.analysis_results is not None:
             st.header("Results Visualization")
 
+            #桑基圖
+             # 使用 dynamic choice 生成選項
+        choices = [f"Data {i+1}" for i in range(total_specific_instances_C)]
+        choice = st.selectbox("Data", [" "] + choices)
+        
+        if choice != " ":
+            index = int(choice.split(" ")[1]) - 1  # 轉換選擇為索引
+            st.subheader("RESULT")
+            
+            # 根據選擇的索引獲取資料
+            c, score_A, score_B, pure_score_A, pure_score_B = specific_instances_C[index]
+
+            # 定義 Sankey 圖的 source, target 和 value 陣列
+            source = [0, 0] + [1] * len(score_A[1]) + [2] * len(score_B[1])
+            target = [1, 2] + list(range(3, 3 + len(score_A[1]))) + list(range(3 + len(score_A[1]), 3 + len(score_A[1]) + len(score_B[1])))
+            value = [score_A[0], score_B[0]] + [i[-1] for i in score_A[1]] + [i[-1] for i in score_B[1]]
+            
+            # 定義節點標籤，PATIENT 標籤將顯示所選資料的 PATIENT_ID
+            label = [f'PATIENT:{index+1}', 'Positive P', 'Negative N'] + ['P'+str(i[0]) for i in score_A[1]] + ['N'+str(i[0]) for i in score_B[1]]
+
+            # Define node colors
+            node_colors = ['#ECEFF1', '#F8BBD0', '#DCEDC8'] + ['#FFEBEE'] * len(score_A[1]) + ['#F1F8E9'] * len(score_B[1])
+
+            # Create the Sankey diagram
+            fig = go.Figure(data=[go.Sankey(node=dict(pad=15,thickness=20,line=dict(color="#37474F", width=0.5),label=label),link=dict(source=source,target=target,value=value,color=node_colors[1:2] + node_colors[2:3] + ['#FFEBEE'] * len(score_A[1]) + ['#F1F8E9'] * len(score_B[1])))])  # Use colors for links similar to node colors
+
+            # 在 Streamlit 中顯示 Sankey 圖
+            st.plotly_chart(fig)
+
+            # 顯示取過 pure 的桑基圖
+            st.subheader("Pure RESULT")
+            
+            # 定義 pure Sankey 圖的 source, target 和 value 陣列
+            pure_source = [0, 0] + [1] * len(pure_score_A[1]) + [2] * len(pure_score_B[1])
+            pure_target = [1, 2] + list(range(3, 3 + len(pure_score_A[1]))) + list(range(3 + len(pure_score_A[1]), 3 + len(pure_score_A[1]) + len(pure_score_B[1])))
+            pure_value = [pure_score_A[0], pure_score_B[0]] + [i[-1] for i in pure_score_A[1]] + [i[-1] for i in pure_score_B[1]]
+            
+            # 定義 pure 節點標籤
+            pure_label = [f'PATIENT:{index+1}', 'Positive P', 'Negative N'] + ['P'+str(i[0]) for i in pure_score_A[1]] + ['N'+str(i[0]) for i in pure_score_B[1]]
+
+            # Define pure node colors
+            pure_node_colors = ['#ECEFF1', '#F8BBD0', '#DCEDC8'] + ['#FFEBEE'] * len(pure_score_A[1]) + ['#F1F8E9'] * len(pure_score_B[1])
+
+            # Create the pure Sankey diagram
+            pure_fig = go.Figure(data=[go.Sankey(node=dict(pad=15,thickness=20,line=dict(color="#37474F", width=0.5),label=pure_label),link=dict(source=pure_source,target=pure_target,value=pure_value,color=pure_node_colors[1:2] + pure_node_colors[2:3] + ['#FFEBEE'] * len(pure_score_A[1]) + ['#F1F8E9'] * len(pure_score_B[1])))])  # Use colors for links similar to node colors
+
+            # 在 Streamlit 中顯示 pure Sankey 圖
+            st.plotly_chart(pure_fig)
+
+            
             #風險表格
             selected_instance = st.selectbox(
                 "Select Patient ID",
