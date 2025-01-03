@@ -479,7 +479,7 @@ def main():
     # Settings Tab
     with tabs[4]:
         # Streamlit Application
-        st.header("Settings Configuration Tool")
+        st.title("Settings Configuration Tool")
         # Analysis Settings
         st.subheader("Analysis Parameters")
        
