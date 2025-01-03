@@ -302,7 +302,7 @@ def main():
     with tabs[1]:
          uploaded_files = st.file_uploader("**上傳所要檢測的數據**", type = ['csv'])
 
-        if uploaded_files is not None:
+    if uploaded_files is not None:
             df = pd.read_csv(uploaded_files, sep=',', header=None, skiprows=1)
 
             st.write("Data Preview:")
