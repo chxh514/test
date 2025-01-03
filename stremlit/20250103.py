@@ -1,4 +1,3 @@
-from streamlit.app import DataPreprocessing
 from xmlrpc.client import _Method
 import streamlit as st
 import numpy as np
@@ -29,9 +28,8 @@ def main():
     page_icon="🏥",
     layout='wide',
     initial_sidebar_state='expanded')
-
     
-# 裝飾Tabs
+    # 裝飾Tabs
     st.markdown("""
     <style>
     .stTabs [data-baseweb="tab-list"] {
@@ -67,8 +65,7 @@ def main():
         border-radius: 3px;
     }
     </style>
-""", unsafe_allow_html=True)
-
+    """, unsafe_allow_html=True)
 
 #定義
 def find_patterns_updated(data):
@@ -145,20 +142,6 @@ def main():
                 st.write("Data Preview:", df.head())
             except Exception as e:
                 st.error(f"Error reading file: {str(e)}")
-
-        if uploaded_file is not None:
-            try:
-                result = DataPreprocessing(uploaded_file) # type: ignore
-                if result is not None:
-                    acc, A, B, C, IdT, ClassT = result
-                    st.session_state.processed_data = {
-                        'acc': acc, 'A': A, 'B': B, 'C': C, 
-                        'IdT': IdT, 'ClassT': ClassT
-                    }
-                    _Method(acc, A, B, C, IdT, ClassT)
-                    st.success("Data processed successfully!")
-            except Exception as e:
-                st.error(f"Error processing file: {str(e)}")
 
     # Tab 2: Data Analysis
     with tabs[1]:
@@ -309,7 +292,7 @@ def main():
                 node_colors = ['#ECEFF1', '#F8BBD0', '#DCEDC8'] + ['#FFEBEE'] * len(score_A[1]) + ['#F1F8E9'] * len(score_B[1])
 
                 # Create the Sankey diagram
-                fig = go.Figure(data=[go.Sankey(node=dict(pad=15,thickness=20,line=dict(color="#37474F", width=0.5),label=label),link=dict(source=source,target=target,value=value,color=node_colors[1:2] ))])
+                fig = go.Figure(data=[go.Sankey(node=dict(pad=15,thickness=20,line=dict(color="#37474F", width=0.5),label=label),link=dict(source=source,target=target,value=value,color=node_colors[1:2[...]
                 # 在 Streamlit 中顯示 Sankey 圖
                 st.plotly_chart(fig)
 
@@ -328,7 +311,7 @@ def main():
                 pure_node_colors = ['#ECEFF1', '#F8BBD0', '#DCEDC8'] + ['#FFEBEE'] * len(pure_score_A[1]) + ['#F1F8E9'] * len(pure_score_B[1])
 
                 # Create the pure Sankey diagram
-                pure_fig = go.Figure(data=[go.Sankey(node=dict(pad=15,thickness=20,line=dict(color="#37474F", width=0.5),label=pure_label),link=dict(source=pure_source,target=pure_target,value=pure_value))])
+                pure_fig = go.Figure(data=[go.Sankey(node=dict(pad=15,thickness=20,line=dict(color="#37474F", width=0.5),label=pure_label),link=dict(source=pure_source,target=pure_target,value=pure_va[...]
                 # 在 Streamlit 中顯示 pure Sankey 圖
                 st.plotly_chart(pure_fig)
 
@@ -355,56 +338,6 @@ def main():
                     
                     fig = create_sankey_diagram(sankey_data, "Patient Analysis Flow")
                     st.plotly_chart(fig)
-                
-                
-                # Risk Distribution Pie Chart
-                st.subheader("Risk Distribution")
-                risk_data = {
-                    'Category': ['High Risk', 'Medium Risk', 'Low Risk'],
-                    'Count': [
-                        st.session_state.analysis_results['high_risk'],
-                        st.session_state.analysis_results['medium_risk'],
-                        st.session_state.analysis_results['low_risk']
-                    ]
-                }
-                fig = px.pie(risk_data, values='Count', names='Category', 
-                            color_discrete_sequence=px.colors.qualitative.Set3)
-                st.plotly_chart(fig, use_container_width=True)
-
-                # Timeline Analysis
-                st.subheader("Timeline Analysis")
-                # Generate sample timeline data
-                dates = pd.date_range(start='2024-01-01', periods=10, freq='D')
-                timeline_data = pd.DataFrame({
-                    'Date': dates,
-                    'Risk Score': np.random.uniform(0, 1, 10)
-                })
-                fig = px.line(timeline_data, x='Date', y='Risk Score')
-                st.plotly_chart(fig, use_container_width=True)
-
-                #風險表格
-                selected_instance = st.selectbox(
-                    "Select Patient ID",
-                    options=range(len(specific_instances)),
-                    format_func=lambda x: f"Patient {x+1}"
-                )
-                
-                if selected_instance is not None:
-                    instance_data = specific_instances[selected_instance]
-                    
-                    # Create and display Sankey diagram
-                    sankey_data = create_sankey_data(
-                        instance_data[0],
-                        instance_data[1],
-                        instance_data[2],
-                        instance_data[3],
-                        instance_data[4],
-                        selected_instance
-                    )
-                    
-                    fig = create_sankey_diagram(sankey_data, "Patient Analysis Flow")
-                    st.plotly_chart(fig)
-                
                 
                 # Risk Distribution Pie Chart
                 st.subheader("Risk Distribution")
