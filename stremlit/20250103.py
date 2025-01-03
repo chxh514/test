@@ -208,8 +208,7 @@ with tabs[1]:
         # Box plot
         fig.add_trace(
             go.Box(y=data[selected_col], name="Box Plot"),
-            row=1, col2
-        )
+            row=1, col=2)
         fig.update_layout(height=400, title_text=f"Distribution Analysis of {selected_col}")
         st.plotly_chart(fig, use_container_width=True)
 
