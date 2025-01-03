@@ -446,33 +446,7 @@ def main():
             } for idx, instance in enumerate(specific_instances)])
             
             st.dataframe(risk_df)
-        data = []
-        for idx, (c, score_A, score_B, pure_score_A, pure_score_B) in enumerate(specific_instances):
-            risk_score = max(pure_score_A[0], pure_score_B[0])  # 使用取過 pure 的分數來判斷風險高低
-            if risk_score < 1000:
-                risk_level = "Very Low"
-                status = ""
-            elif risk_score < 2000:
-                risk_level = "Low"
-                status = ""
-            elif risk_score < 3000:
-                risk_level = "High"
-                status = "⚠️"
-            else:
-                risk_level = "Very High"
-                status = "⚠️"
-            data.append({
-                "Status": status,
-                "ID": idx + 1,
-                "NS": pure_score_A[0],  # 使用取過 pure 的分數
-                "PS": pure_score_B[0],  # 使用取過 pure 的分數
-                "Label": ClassT[idx],
-                "Misdiagnosis Risk": risk_level
-            })
-
-        df_risk = pd.DataFrame(data)
-        styled_df = df_risk.style.apply(highlight_risk, axis=1)
-        st.dataframe(styled_df, use_container_width=False, height=600)
+        
 
     # Visualization Tab
     with tabs[3]:
