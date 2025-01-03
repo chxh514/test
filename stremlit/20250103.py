@@ -479,10 +479,10 @@ def main():
     # Settings Tab
     with tabs[4]:
         # Streamlit Application
-        st.title("Settings Configuration Tool")
-
+        st.header("Settings Configuration Tool")
         # Analysis Settings
-        st.subheader("Analysis Configuration")
+        st.subheader("Analysis Parameters")
+       
         col1, col2 = st.columns(2)
         with col1:
             max_threads = st.number_input("Maximum Threads", min_value=1, max_value=16, value=4, key="max_threads")
