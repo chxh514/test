@@ -138,7 +138,7 @@ def highlight_risk(row):
     # ... (此部分程式碼與先前相同，已整理排版)
 
 # 主函數
-def main():
+    def main():
     # ... (此部分程式碼與先前相同，已整理排版)
     with tabs[0]:
         uploaded_file = st.file_uploader("上傳您的CSV檔案", type=["csv"])
