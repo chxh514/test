@@ -1,3 +1,4 @@
+from stremlit.app import DataPreprocessing
 from xmlrpc.client import _Method
 import streamlit as st
 import numpy as np
