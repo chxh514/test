@@ -486,21 +486,21 @@ def main():
         st.subheader("Analysis Configuration")
         col1, col2 = st.columns(2)
         with col1:
-            max_threads = st.number_input("Maximum Threads", min_value=1, max_value=16, value=4)
-            color_theme = st.selectbox("Color Theme", ["Default", "Light", "Dark"])
+            max_threads = st.number_input("Maximum Threads", min_value=1, max_value=16, value=4, key="max_threads")
+            color_theme = st.selectbox("Color Theme", ["Default", "Light", "Dark"], key="color_theme")
         with col2:
-            advanced_analytics = st.checkbox("Enable Advanced Analytics", value=True)
-            auto_save = st.checkbox("Auto-save Results", value=True)
+            advanced_analytics = st.checkbox("Enable Advanced Analytics", value=True, key="advanced_analytics")
+            auto_save = st.checkbox("Auto-save Results", value=True, key="auto_save")
 
         # Export Settings
         st.subheader("Export Configuration")
         col1, col2 = st.columns(2)
         with col1:
-            export_format = st.selectbox("Export Format", ["CSV", "Excel", "JSON"])
-            include_metadata = st.checkbox("Include Metadata", value=True)
+            export_format = st.selectbox("Export Format", ["CSV", "Excel", "JSON"], key="export_format")
+            include_metadata = st.checkbox("Include Metadata", value=True, key="include_metadata")
         with col2:
-            export_directory = st.text_input("Export Directory", value="C:/Results")
-            auto_export = st.checkbox("Auto-export", value=False)
+            export_directory = st.text_input("Export Directory", value="C:/Results", key="export_directory")
+            auto_export = st.checkbox("Auto-export", value=False, key="auto_export")
 
         # Display Current Settings
         st.subheader("Current Settings")
@@ -517,7 +517,7 @@ def main():
         st.write(f"Auto-export: {auto_export}")
 
         # Save Settings
-        if st.button("Save Settings"):
+        if st.button("Save Settings", key="save_settings"):
             # Simulate saving settings
             settings = {
                 "Analysis Settings": {
