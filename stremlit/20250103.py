@@ -361,7 +361,7 @@ def main():
     st.markdown("""
         <style>
             .stTabs>div>div>div>button {
-                font-size: 70px;  /* 修改為更大的字體大小 */}
+                font-size: 10000px;  /* 修改為更大的字體大小 */}
         </style>
     """, unsafe_allow_html=True)
     tabs = st.tabs([
