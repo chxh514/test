@@ -27,10 +27,10 @@ st.markdown("""
         gap: 24px;
     }
     .stTabs [data-baseweb="tab"] {
-        height: 50px;
-        padding: 10px 20px;
+        height: 70px;
+        padding: 20px 30px;
         background-color: #f0f2f6;
-        border-radius: 5px;
+        border-radius: 10px;
         font-weight: 1000;
     }
     .stTabs [aria-selected="true"] {
