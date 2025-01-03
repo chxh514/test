@@ -502,20 +502,6 @@ def main():
             export_directory = st.text_input("Export Directory", value="C:/Results", key="export_directory")
             auto_export = st.checkbox("Auto-export", value=False, key="auto_export")
 
-        # Display Current Settings
-        st.subheader("Current Settings")
-        st.write("### Analysis Settings")
-        st.write(f"Maximum Threads: {max_threads}")
-        st.write(f"Color Theme: {color_theme}")
-        st.write(f"Enable Advanced Analytics: {advanced_analytics}")
-        st.write(f"Auto-save Results: {auto_save}")
-
-        st.write("### Export Settings")
-        st.write(f"Export Format: {export_format}")
-        st.write(f"Include Metadata: {include_metadata}")
-        st.write(f"Export Directory: {export_directory}")
-        st.write(f"Auto-export: {auto_export}")
-
         # Save Settings
         if st.button("Save Settings", key="save_settings"):
             # Simulate saving settings
