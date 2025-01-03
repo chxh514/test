@@ -111,9 +111,7 @@ def main():
             <p style="color: white; text-align: center">Advanced analysis for medical diagnosis validation</p>
         </div>
     """, unsafe_allow_html=True)    
-    
-    
-    
+
     # Create tabs with improved styling
     tabs = st.tabs([
         "📤 Upload Files",
@@ -122,7 +120,6 @@ def main():
         "📈 Visualization",
         "⚙️ Settings"
     ])
-
 
     # Global state management
     if 'data' not in st.session_state:
@@ -148,7 +145,6 @@ def main():
             except Exception as e:
                 st.error(f"Error reading file: {str(e)}")
 
-
         if uploaded_file is not None:
             try:
                 result = DataPreprocessing(uploaded_file) # type: ignore
@@ -164,277 +160,275 @@ def main():
                 st.error(f"Error processing file: {str(e)}")
 
     # Tab 2: Data Analysis
-with tabs[1]:
-    if st.session_state.data is not None:
-        data = st.session_state.data  # 将 data 从 st.session_state 中获取
-        st.header("Data Analysis")
-        
-        # ROC Curve
-        ANS = np.array(data['ClassT'])
-        ScoreA = np.array([get_score_of_instance(c, find_patterns_updated(data['A']))[0] for c in data['C']])
-        ScoreB = np.array([get_score_of_instance(c, find_patterns_updated(data['B']))[0] for c in data['C']])
-        
-        fpr_A, tpr_A, _ = metrics.roc_curve(ANS, ScoreA, pos_label=2)
-        fpr_B, tpr_B, _ = metrics.roc_curve(ANS, ScoreB, pos_label=4)
-        
-        fig = go.Figure()
-        fig.add_trace(go.Scatter(x=fpr_A, y=tpr_A, name='Score A'))
-        fig.add_trace(go.Scatter(x=fpr_B, y=tpr_B, name='Score B'))
-        fig.update_layout(title='ROC Curve Analysis')
-        st.plotly_chart(fig)
-
-        # Basic Statistics
-        st.subheader("Basic Statistics")
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            st.metric("Total Records", len(data))
-        with col2:
-            st.metric("Features", len(data.columns))
-        with col3:
-            st.metric("Missing Values", data.isnull().sum().sum())
-
-        # Data Distribution
-        st.subheader("Data Distribution")
-        numeric_cols = data.select_dtypes(include=[np.number]).columns
-        selected_col = st.selectbox("Select column for distribution analysis", numeric_cols)
-        
-        fig = make_subplots(rows=1, cols=2)
-        # Histogram
-        fig.add_trace(
-            go.Histogram(x=data[selected_col], name="Distribution"),
-            row=1, col=1
-        )
-        # Box plot
-        fig.add_trace(
-            go.Box(y=data[selected_col], name="Box Plot"),
-            row=1, col=2 )
-        fig.update_layout(height=400, title_text=f"Distribution Analysis of {selected_col}")
-        st.plotly_chart(fig, use_container_width=True)
-
-        # Correlation Matrix
-        st.subheader("Correlation Matrix")
-        corr = data[numeric_cols].corr()
-        fig = px.imshow(corr, color_continuous_scale='RdBu')
-        st.plotly_chart(fig, use_container_width=True)
-
-# Tab 3: Misdiagnosis Detection
-with tabs[2]:
-    if st.session_state.data is not None:
-        data = st.session_state.data  # 将 data 从 st.session_state 中获取
-        st.header("Misdiagnosis Detection")
-
-        # Parameters
-        st.subheader("Detection Parameters")
-        col1, col2 = st.columns(2)
-        with col1:
-            threshold = st.slider("Risk Threshold", 0.0, 1.0, 0.5)
-        with col2:
-            confidence = st.slider("Confidence Level", 0.8, 0.99, 0.95)
-
-        if st.button("Run Detection"):
-            with st.spinner("Running misdiagnosis detection..."):
-                # Simulated analysis (replace with actual detection logic)
-                time.sleep(2)
-                st.session_state.analysis_results = {
-                    'high_risk': np.random.randint(1, 10),
-                    'medium_risk': np.random.randint(5, 15),
-                    'low_risk': np.random.randint(10, 30),
-                    'confidence_score': confidence
-                }
+    with tabs[1]:
+        if st.session_state.data is not None:
+            data = st.session_state.data  # 将 data 从 st.session_state 中获取
+            st.header("Data Analysis")
             
-            # Display Results
-            col1, col2, col3 = st.columns(3)
-            with col1:
-                st.metric("High Risk Cases", st.session_state.analysis_results['high_risk'])
-            with col2:
-                st.metric("Medium Risk Cases", st.session_state.analysis_results['medium_risk'])
-            with col3:
-                st.metric("Low Risk Cases", st.session_state.analysis_results['low_risk'])
-
-        #表格
-        data = st.session_state.processed_data  # 确保data从st.session_state获取
-        patterns_A = find_patterns_updated(data['A'])
-        patterns_B = find_patterns_updated(data['B'])
-        pure_patterns_A = find_pure_patterns(patterns_A, data['B'])
-        pure_patterns_B = find_pure_patterns(patterns_B, data['A'])
-        
-        specific_instances = find_specific_instances(data['C'], 
-                                                   patterns_A, patterns_B,
-                                                   pure_patterns_A, pure_patterns_B)
-        
-        st.metric("Detected Risk Cases", len(specific_instances))
-        
-        risk_df = pd.DataFrame([{
-            'ID': idx,
-            'Risk Score': max(instance[3][0], instance[4][0]),
-            'Class': data['ClassT'][idx]
-        } for idx, instance in enumerate(specific_instances)])
-        
-        st.dataframe(risk_df)
-
-# Tab 4: Visualization
-with tabs[3]:
-    if st.session_state.analysis_results is not None:
-        data = st.session_state.data  # 将 data 从 st.session_state 中获取
-        st.header("Results Visualization")
-      
-        #桑基圖
-        # 使用 dynamic choice 生成選項
-        patterns_A = find_patterns_updated(data['A'])
-        patterns_B = find_patterns_updated(data['B'])
-        pure_patterns_A = find_pure_patterns(patterns_A, data['B'])
-        pure_patterns_B = find_pure_patterns(patterns_B, data['A'])
-
-        # 查找滿足條件的 C 中的實例
-        specific_instances_C = find_specific_instances(data['C'], patterns_A, patterns_B, pure_patterns_A, pure_patterns_B)
-
-        # 計算 specific_instances_C 的資料筆數並儲存為變數
-        total_specific_instances_C = len(specific_instances_C)
-        choices = [f"Data {i+1}" for i in range(total_specific_instances_C)]
-        choice = st.selectbox("Data", [" "] + choices)
-        
-        if choice != " ":
-            index = int(choice.split(" ")[1]) - 1  # 轉換選擇為索引
-            st.subheader("RESULT")
+            # ROC Curve
+            ANS = np.array(data['ClassT'])
+            ScoreA = np.array([get_score_of_instance(c, find_patterns_updated(data['A']))[0] for c in data['C']])
+            ScoreB = np.array([get_score_of_instance(c, find_patterns_updated(data['B']))[0] for c in data['C']])
             
-            # 根據選擇的索引獲取資料
-            c, score_A, score_B, pure_score_A, pure_score_B = specific_instances_C[index]
-
-            # 定義 Sankey 圖的 source, target 和 value 陣列
-            source = [0, 0] + [1] * len(score_A[1]) + [2] * len(score_B[1])
-            target = [1, 2] + list(range(3, 3 + len(score_A[1]))) + list(range(3 + len(score_A[1]), 3 + len(score_A[1]) + len(score_B[1])))
-            value = [score_A[0], score_B[0]] + [i[-1] for i in score_A[1]] + [i[-1] for i in score_B[1]]
+            fpr_A, tpr_A, _ = metrics.roc_curve(ANS, ScoreA, pos_label=2)
+            fpr_B, tpr_B, _ = metrics.roc_curve(ANS, ScoreB, pos_label=4)
             
-            # 定義節點標籤，PATIENT 標籤將顯示所選資料的 PATIENT_ID
-            label = [f'PATIENT:{index+1}', 'Positive P', 'Negative N'] + ['P'+str(i[0]) for i in score_A[1]] + ['N'+str(i[0]) for i in score_B[1]]
-
-            # Define node colors
-            node_colors = ['#ECEFF1', '#F8BBD0', '#DCEDC8'] + ['#FFEBEE'] * len(score_A[1]) + ['#F1F8E9'] * len(score_B[1])
-
-            # Create the Sankey diagram
-            fig = go.Figure(data=[go.Sankey(node=dict(pad=15,thickness=20,line=dict(color="#37474F", width=0.5),label=label),link=dict(source=source,target=target,value=value,color=node_colors[1:2] ))])# 确保颜色分配正确
-            # 在 Streamlit 中顯示 Sankey 圖
+            fig = go.Figure()
+            fig.add_trace(go.Scatter(x=fpr_A, y=tpr_A, name='Score A'))
+            fig.add_trace(go.Scatter(x=fpr_B, y=tpr_B, name='Score B'))
+            fig.update_layout(title='ROC Curve Analysis')
             st.plotly_chart(fig)
 
-            # 顯示取過 pure 的桑基圖
-            st.subheader("Pure RESULT")
+            # Basic Statistics
+            st.subheader("Basic Statistics")
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                st.metric("Total Records", len(data))
+            with col2:
+                st.metric("Features", len(data.columns))
+            with col3:
+                st.metric("Missing Values", data.isnull().sum().sum())
+
+            # Data Distribution
+            st.subheader("Data Distribution")
+            numeric_cols = data.select_dtypes(include=[np.number]).columns
+            selected_col = st.selectbox("Select column for distribution analysis", numeric_cols)
             
-            # 定義 pure Sankey 圖的 source, target 和 value 陣列
-            pure_source = [0, 0] + [1] * len(pure_score_A[1]) + [2] * len(pure_score_B[1])
-            pure_target = [1, 2] + list(range(3, 3 + len(pure_score_A[1]))) + list(range(3 + len(pure_score_A[1]), 3 + len(pure_score_A[1]) + len(pure_score_B[1])))
-            pure_value = [pure_score_A[0], pure_score_B[0]] + [i[-1] for i in pure_score_A[1]] + [i[-1] for i in pure_score_B[1]]
-            
-            # 定義 pure 節點標籤
-            pure_label = [f'PATIENT:{index+1}', 'Positive P', 'Negative N'] + ['P'+str(i[0]) for i in pure_score_A[1]] + ['N'+str(i[0]) for i in pure_score_B[1]]
-
-            # Define pure node colors
-            pure_node_colors = ['#ECEFF1', '#F8BBD0', '#DCEDC8'] + ['#FFEBEE'] * len(pure_score_A[1]) + ['#F1F8E9'] * len(pure_score_B[1])
-
-            # Create the pure Sankey diagram
-            pure_fig = go.Figure(data=[go.Sankey(node=dict(pad=15,thickness=20,line=dict(color="#37474F", width=0.5),label=pure_label),link=dict(source=pure_source,target=pure_target,value=pure_value))])
-
-            # 在 Streamlit 中顯示 pure Sankey 圖
-            st.plotly_chart(pure_fig)
-
-            
-            #風險表格
-            selected_instance = st.selectbox(
-                "Select Patient ID",
-                options=range(len(specific_instances)),
-                format_func=lambda x: f"Patient {x+1}"
+            fig = make_subplots(rows=1, cols=2)
+            # Histogram
+            fig.add_trace(
+                go.Histogram(x=data[selected_col], name="Distribution"),
+                row=1, col=1
             )
-            
-            if selected_instance is not None:
-                instance_data = specific_instances[selected_instance]
+            # Box plot
+            fig.add_trace(
+                go.Box(y=data[selected_col], name="Box Plot"),
+                row=1, col=2 )
+            fig.update_layout(height=400, title_text=f"Distribution Analysis of {selected_col}")
+            st.plotly_chart(fig, use_container_width=True)
+
+            # Correlation Matrix
+            st.subheader("Correlation Matrix")
+            corr = data[numeric_cols].corr()
+            fig = px.imshow(corr, color_continuous_scale='RdBu')
+            st.plotly_chart(fig, use_container_width=True)
+
+    # Tab 3: Misdiagnosis Detection
+    with tabs[2]:
+        if st.session_state.data is not None:
+            data = st.session_state.data  # 将 data 从 st.session_state 中获取
+            st.header("Misdiagnosis Detection")
+
+            # Parameters
+            st.subheader("Detection Parameters")
+            col1, col2 = st.columns(2)
+            with col1:
+                threshold = st.slider("Risk Threshold", 0.0, 1.0, 0.5)
+            with col2:
+                confidence = st.slider("Confidence Level", 0.8, 0.99, 0.95)
+
+            if st.button("Run Detection"):
+                with st.spinner("Running misdiagnosis detection..."):
+                    # Simulated analysis (replace with actual detection logic)
+                    time.sleep(2)
+                    st.session_state.analysis_results = {
+                        'high_risk': np.random.randint(1, 10),
+                        'medium_risk': np.random.randint(5, 15),
+                        'low_risk': np.random.randint(10, 30),
+                        'confidence_score': confidence
+                    }
                 
-                # Create and display Sankey diagram
-                sankey_data = create_sankey_data(
-                    instance_data[0],
-                    instance_data[1],
-                    instance_data[2],
-                    instance_data[3],
-                    instance_data[4],
-                    selected_instance
+                # Display Results
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    st.metric("High Risk Cases", st.session_state.analysis_results['high_risk'])
+                with col2:
+                    st.metric("Medium Risk Cases", st.session_state.analysis_results['medium_risk'])
+                with col3:
+                    st.metric("Low Risk Cases", st.session_state.analysis_results['low_risk'])
+
+            #表格
+            data = st.session_state.processed_data  # 确保data从st.session_state获取
+            patterns_A = find_patterns_updated(data['A'])
+            patterns_B = find_patterns_updated(data['B'])
+            pure_patterns_A = find_pure_patterns(patterns_A, data['B'])
+            pure_patterns_B = find_pure_patterns(patterns_B, data['A'])
+            
+            specific_instances = find_specific_instances(data['C'], 
+                                                       patterns_A, patterns_B,
+                                                       pure_patterns_A, pure_patterns_B)
+            
+            st.metric("Detected Risk Cases", len(specific_instances))
+            
+            risk_df = pd.DataFrame([{
+                'ID': idx,
+                'Risk Score': max(instance[3][0], instance[4][0]),
+                'Class': data['ClassT'][idx]
+            } for idx, instance in enumerate(specific_instances)])
+            
+            st.dataframe(risk_df)
+
+    # Tab 4: Visualization
+    with tabs[3]:
+        if st.session_state.analysis_results is not None:
+            data = st.session_state.data  # 将 data 从 st.session_state 中获取
+            st.header("Results Visualization")
+        
+            #桑基圖
+            # 使用 dynamic choice 生成選項
+            patterns_A = find_patterns_updated(data['A'])
+            patterns_B = find_patterns_updated(data['B'])
+            pure_patterns_A = find_pure_patterns(patterns_A, data['B'])
+            pure_patterns_B = find_pure_patterns(patterns_B, data['A'])
+
+            # 查找滿足條件的 C 中的實例
+            specific_instances_C = find_specific_instances(data['C'], patterns_A, patterns_B, pure_patterns_A, pure_patterns_B)
+
+            # 計算 specific_instances_C 的資料筆數並儲存為變數
+            total_specific_instances_C = len(specific_instances_C)
+            choices = [f"Data {i+1}" for i in range(total_specific_instances_C)]
+            choice = st.selectbox("Data", [" "] + choices)
+            
+            if choice != " ":
+                index = int(choice.split(" ")[1]) - 1  # 轉換選擇為索引
+                st.subheader("RESULT")
+                
+                # 根據選擇的索引獲取資料
+                c, score_A, score_B, pure_score_A, pure_score_B = specific_instances_C[index]
+
+                # 定義 Sankey 圖的 source, target 和 value 陣列
+                source = [0, 0] + [1] * len(score_A[1]) + [2] * len(score_B[1])
+                target = [1, 2] + list(range(3, 3 + len(score_A[1]))) + list(range(3 + len(score_A[1]), 3 + len(score_A[1]) + len(score_B[1])))
+                value = [score_A[0], score_B[0]] + [i[-1] for i in score_A[1]] + [i[-1] for i in score_B[1]]
+                
+                # 定義節點標籤，PATIENT 標籤將顯示所選資料的 PATIENT_ID
+                label = [f'PATIENT:{index+1}', 'Positive P', 'Negative N'] + ['P'+str(i[0]) for i in score_A[1]] + ['N'+str(i[0]) for i in score_B[1]]
+
+                # Define node colors
+                node_colors = ['#ECEFF1', '#F8BBD0', '#DCEDC8'] + ['#FFEBEE'] * len(score_A[1]) + ['#F1F8E9'] * len(score_B[1])
+
+                # Create the Sankey diagram
+                fig = go.Figure(data=[go.Sankey(node=dict(pad=15,thickness=20,line=dict(color="#37474F", width=0.5),label=label),link=dict(source=source,target=target,value=value,color=node_colors[1:2] ))])
+                # 在 Streamlit 中顯示 Sankey 圖
+                st.plotly_chart(fig)
+
+                # 顯示取過 pure 的桑基圖
+                st.subheader("Pure RESULT")
+                
+                # 定義 pure Sankey 圖的 source, target 和 value 陣列
+                pure_source = [0, 0] + [1] * len(pure_score_A[1]) + [2] * len(pure_score_B[1])
+                pure_target = [1, 2] + list(range(3, 3 + len(pure_score_A[1]))) + list(range(3 + len(pure_score_A[1]), 3 + len(pure_score_A[1]) + len(pure_score_B[1])))
+                pure_value = [pure_score_A[0], pure_score_B[0]] + [i[-1] for i in pure_score_A[1]] + [i[-1] for i in pure_score_B[1]]
+                
+                # 定義 pure 節點標籤
+                pure_label = [f'PATIENT:{index+1}', 'Positive P', 'Negative N'] + ['P'+str(i[0]) for i in pure_score_A[1]] + ['N'+str(i[0]) for i in pure_score_B[1]]
+
+                # Define pure node colors
+                pure_node_colors = ['#ECEFF1', '#F8BBD0', '#DCEDC8'] + ['#FFEBEE'] * len(pure_score_A[1]) + ['#F1F8E9'] * len(pure_score_B[1])
+
+                # Create the pure Sankey diagram
+                pure_fig = go.Figure(data=[go.Sankey(node=dict(pad=15,thickness=20,line=dict(color="#37474F", width=0.5),label=pure_label),link=dict(source=pure_source,target=pure_target,value=pure_value))])
+                # 在 Streamlit 中顯示 pure Sankey 圖
+                st.plotly_chart(pure_fig)
+
+                
+                #風險表格
+                selected_instance = st.selectbox(
+                    "Select Patient ID",
+                    options=range(len(specific_instances)),
+                    format_func=lambda x: f"Patient {x+1}"
                 )
                 
-                fig = create_sankey_diagram(sankey_data, "Patient Analysis Flow")
-                st.plotly_chart(fig)
-            
-            
-            # Risk Distribution Pie Chart
-            st.subheader("Risk Distribution")
-            risk_data = {
-                'Category': ['High Risk', 'Medium Risk', 'Low Risk'],
-                'Count': [
-                    st.session_state.analysis_results['high_risk'],
-                    st.session_state.analysis_results['medium_risk'],
-                    st.session_state.analysis_results['low_risk']
-                ]
-            }
-            fig = px.pie(risk_data, values='Count', names='Category', 
-                        color_discrete_sequence=px.colors.qualitative.Set3)
-            st.plotly_chart(fig, use_container_width=True)
-
-            # Timeline Analysis
-            st.subheader("Timeline Analysis")
-            # Generate sample timeline data
-            dates = pd.date_range(start='2024-01-01', periods=10, freq='D')
-            timeline_data = pd.DataFrame({
-                'Date': dates,
-                'Risk Score': np.random.uniform(0, 1, 10)
-            })
-            fig = px.line(timeline_data, x='Date', y='Risk Score')
-            st.plotly_chart(fig, use_container_width=True)
-
-            
-            #風險表格
-            selected_instance = st.selectbox(
-                "Select Patient ID",
-                options=range(len(specific_instances)),
-                format_func=lambda x: f"Patient {x+1}"
-            )
-            
-            if selected_instance is not None:
-                instance_data = specific_instances[selected_instance]
+                if selected_instance is not None:
+                    instance_data = specific_instances[selected_instance]
+                    
+                    # Create and display Sankey diagram
+                    sankey_data = create_sankey_data(
+                        instance_data[0],
+                        instance_data[1],
+                        instance_data[2],
+                        instance_data[3],
+                        instance_data[4],
+                        selected_instance
+                    )
+                    
+                    fig = create_sankey_diagram(sankey_data, "Patient Analysis Flow")
+                    st.plotly_chart(fig)
                 
-                # Create and display Sankey diagram
-                sankey_data = create_sankey_data(
-                    instance_data[0],
-                    instance_data[1],
-                    instance_data[2],
-                    instance_data[3],
-                    instance_data[4],
-                    selected_instance
+                
+                # Risk Distribution Pie Chart
+                st.subheader("Risk Distribution")
+                risk_data = {
+                    'Category': ['High Risk', 'Medium Risk', 'Low Risk'],
+                    'Count': [
+                        st.session_state.analysis_results['high_risk'],
+                        st.session_state.analysis_results['medium_risk'],
+                        st.session_state.analysis_results['low_risk']
+                    ]
+                }
+                fig = px.pie(risk_data, values='Count', names='Category', 
+                            color_discrete_sequence=px.colors.qualitative.Set3)
+                st.plotly_chart(fig, use_container_width=True)
+
+                # Timeline Analysis
+                st.subheader("Timeline Analysis")
+                # Generate sample timeline data
+                dates = pd.date_range(start='2024-01-01', periods=10, freq='D')
+                timeline_data = pd.DataFrame({
+                    'Date': dates,
+                    'Risk Score': np.random.uniform(0, 1, 10)
+                })
+                fig = px.line(timeline_data, x='Date', y='Risk Score')
+                st.plotly_chart(fig, use_container_width=True)
+
+                #風險表格
+                selected_instance = st.selectbox(
+                    "Select Patient ID",
+                    options=range(len(specific_instances)),
+                    format_func=lambda x: f"Patient {x+1}"
                 )
                 
-                fig = create_sankey_diagram(sankey_data, "Patient Analysis Flow")
-                st.plotly_chart(fig)
-            
-            
-            # Risk Distribution Pie Chart
-            st.subheader("Risk Distribution")
-            risk_data = {
-                'Category': ['High Risk', 'Medium Risk', 'Low Risk'],
-                'Count': [
-                    st.session_state.analysis_results['high_risk'],
-                    st.session_state.analysis_results['medium_risk'],
-                    st.session_state.analysis_results['low_risk']
-                ]
-            }
-            fig = px.pie(risk_data, values='Count', names='Category', 
-                        color_discrete_sequence=px.colors.qualitative.Set3)
-            st.plotly_chart(fig, use_container_width=True)
+                if selected_instance is not None:
+                    instance_data = specific_instances[selected_instance]
+                    
+                    # Create and display Sankey diagram
+                    sankey_data = create_sankey_data(
+                        instance_data[0],
+                        instance_data[1],
+                        instance_data[2],
+                        instance_data[3],
+                        instance_data[4],
+                        selected_instance
+                    )
+                    
+                    fig = create_sankey_diagram(sankey_data, "Patient Analysis Flow")
+                    st.plotly_chart(fig)
+                
+                
+                # Risk Distribution Pie Chart
+                st.subheader("Risk Distribution")
+                risk_data = {
+                    'Category': ['High Risk', 'Medium Risk', 'Low Risk'],
+                    'Count': [
+                        st.session_state.analysis_results['high_risk'],
+                        st.session_state.analysis_results['medium_risk'],
+                        st.session_state.analysis_results['low_risk']
+                    ]
+                }
+                fig = px.pie(risk_data, values='Count', names='Category', 
+                            color_discrete_sequence=px.colors.qualitative.Set3)
+                st.plotly_chart(fig, use_container_width=True)
 
-            # Timeline Analysis
-            st.subheader("Timeline Analysis")
-            # Generate sample timeline data
-            dates = pd.date_range(start='2024-01-01', periods=10, freq='D')
-            timeline_data = pd.DataFrame({
-                'Date': dates,
-                'Risk Score': np.random.uniform(0, 1, 10)
-            })
-            fig = px.line(timeline_data, x='Date', y='Risk Score')
-            st.plotly_chart(fig, use_container_width=True)
+                # Timeline Analysis
+                st.subheader("Timeline Analysis")
+                # Generate sample timeline data
+                dates = pd.date_range(start='2024-01-01', periods=10, freq='D')
+                timeline_data = pd.DataFrame({
+                    'Date': dates,
+                    'Risk Score': np.random.uniform(0, 1, 10)
+                })
+                fig = px.line(timeline_data, x='Date', y='Risk Score')
+                st.plotly_chart(fig, use_container_width=True)
 
     # Tab 5: Settings
     with tabs[4]:
