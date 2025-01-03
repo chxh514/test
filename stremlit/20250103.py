@@ -377,7 +377,7 @@ def main():
 
     # Upload Files Tab
     with tabs[0]:
-        uploaded_file = st.file_uploader("Upload your CSV file", type=["csv"])
+        uploaded_file = st.file_uploader("File Upload", type=["csv"])
         
         if uploaded_file is not None:
             try:
