@@ -299,7 +299,7 @@ def main():
             if result is not None:
                 acc, A, B, C, IdT, ClassT = result
                 Method(acc, A, B, C, IdT, ClassT)
-     with tabs[1]:
+    with tabs[1]:
          uploaded_files = st.file_uploader("**上傳所要檢測的數據**", type = ['csv'])
 
         if uploaded_files is not None:
@@ -420,7 +420,7 @@ def main():
                     st.metric("Low Risk Cases", st.session_state.analysis_results['low_risk'])
 
 
-     with tabs[4]:
+    with tabs[4]:
           if st.session_state.analysis_results is not None:
             st.header("Results Visualization")
 
