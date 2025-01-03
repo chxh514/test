@@ -24,7 +24,7 @@ st.set_page_config(
 st.markdown("""
     <style>
     .stTabs [data-baseweb="tab-list"] {
-        gap: 50px;
+        gap: 24px;
     }
     .stTabs [data-baseweb="tab"] {
         height: 50px;
@@ -358,7 +358,14 @@ def main():
             <p style="color: white; text-align: center">Advanced analysis for medical diagnosis validation</p>
         </div>
     """, unsafe_allow_html=True)
-
+    st.markdown("""
+        <style>
+            .stTabs>div>div>div>button {
+                font-size: 24px;  /* 修改為更大的字體大小 */
+                padding: 10px 20px;  /* 增加按鈕的內邊距，讓文字更為突出 */
+            }
+        </style>
+    """, unsafe_allow_html=True)
     tabs = st.tabs([
         "📤 Upload Files",
         "📊 Data Analysis",
