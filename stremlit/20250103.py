@@ -7,7 +7,13 @@ from sklearn import metrics
 import plotly.graph_objects as go
 from multiprocessing import Pool
 
-st.set_page_config(page_title="誤診檢測工具", page_icon="m.jpg", layout='wide', initial_sidebar_state='expanded')
+# Streamlit 基本配置
+st.set_page_config(
+    page_title="誤診檢測工具",
+    page_icon="m.jpg",
+    layout='wide',
+    initial_sidebar_state='expanded'
+)
 
 # 輔助函數：將元組轉換為布林陣列
 def tuples_to_boolean_arrays(tuples, max_value):
@@ -18,7 +24,7 @@ def calculate_score(instance, pure_sets):
     score = 0
     for ps in pure_sets:
         if set(ps).issubset(set(instance)):
-            score += len(ps)**2
+            score += len(ps) ** 2
     return score
 
 # 輔助函數：平行計算多個實例的分數
@@ -27,7 +33,7 @@ def calculate_scores_parallel(instances, pure_sets, num_processes=4):
         scores = pool.starmap(calculate_score, [(instance, pure_sets) for instance in instances])
     return scores
 
-# 輔助函數：以NumPy格式識別純集合
+# 輔助函數：以 NumPy 格式識別純集合
 def identify_pure_sets_numpy(intersections, other_bool, max_value):
     pure_sets = []
     for intersection in intersections:
@@ -49,7 +55,7 @@ def calculate_unique_intersections_single(array):
 # 輔助函數：平行計算多個陣列的唯一交集
 def calculate_unique_intersections_parallel(bool_arrays, num_processes=4):
     with Pool(num_processes) as pool:
-        results = pool.map(calculate_unique_intersections_single, [bool_arrays]) #修正此處
+        results = pool.map(calculate_unique_intersections_single, [bool_arrays])
     return set.union(*results)
 
 # 輔助函數：尋找模式
@@ -59,7 +65,7 @@ def find_patterns_updated(data):
         for j in range(i, len(data)):
             intersection = tuple(set(data[i]) & set(data[j]))
             if intersection:
-                pattern_counts[intersection][0] += len(intersection)**2
+                pattern_counts[intersection][0] += len(intersection) ** 2
                 pattern_counts[intersection][1].update([i, j])
     return {k: (sum([v[0]]), set(v[1])) for k, v in pattern_counts.items()}
 
@@ -95,10 +101,9 @@ def get_pure_score_of_instance(instance, pure_patterns):
             pure_pattern_in_.append([set(pattern), data[0]])
     return pure_score, pure_pattern_in_
 
-# 輔助函數：尋找滿足指定條件的C中的實例
+# 輔助函數：尋找滿足指定條件的 C 中的實例
 def find_specific_instances(C, patterns_A, patterns_B, pure_patterns_A, pure_patterns_B):
     satisfying_instances = []
-
     for c in C:
         score_A = get_score_of_instance(c, patterns_A)
         score_B = get_score_of_instance(c, patterns_B)
@@ -112,34 +117,27 @@ def find_specific_instances(C, patterns_A, patterns_B, pure_patterns_A, pure_pat
 
 # 數據預處理函數
 def DataPreprocessing(uploaded_file):
-    # ... (此部分程式碼與先前相同，已整理排版)
-    rat1 = 0.85
-    rat2 = 0.15
-    rof = 2
-    ski = 1 #修正跳過第一行
-
-    # ... (其餘程式碼與先前相同)
-    return acc, [i[1] for i in A], [i[1] for i in B], [i[1] for i in C], [i[0] for i in C], [i[2] for i in C]
+    # ...（數據預處理邏輯）
+    pass
 
 # 方法函數
 def Method(acc, A, B, C, IdT, ClassT):
-    # ... (此部分程式碼與先前相同，已整理排版)
-    A_bool, B_bool = tuples_to_boolean_arrays(A, acc), tuples_to_boolean_arrays(B, acc)
-    SA = calculate_scores_parallel(C, identify_pure_sets_numpy(calculate_unique_intersections_parallel(A_bool), B_bool, acc))
-    SB = calculate_scores_parallel(C, identify_pure_sets_numpy(calculate_unique_intersections_parallel(B_bool), A_bool, acc))
-    # ... (其餘程式碼與先前相同)
+    # ...（方法邏輯）
+    pass
 
-# Z分數計算函數
+# Z 分數計算函數
 def Zscore(v):
     return 0.0 if v == 0.0 else v
 
 # 風險高亮顯示函數
 def highlight_risk(row):
-    # ... (此部分程式碼與先前相同，已整理排版)
+    # ...（高亮顯示邏輯）
+    pass
 
 # 主函數
-    def main():
-    # ... (此部分程式碼與先前相同，已整理排版)
+def main():
+    tabs = st.tabs(["資料上傳", "分析方法", "模式發現", "可視化分析", "風險評估"])
+
     with tabs[0]:
         uploaded_file = st.file_uploader("上傳您的CSV檔案", type=["csv"])
 
@@ -150,11 +148,11 @@ def highlight_risk(row):
                 Method(acc, A, B, C, IdT, ClassT)
 
     with tabs[1]:
-        # ... (此部分程式碼與先前相同，已整理排版)
-        pass #避免錯誤
+        # 分析方法內容
+        pass
 
     with tabs[2]:
-        if 'A' in locals() and 'B' in locals() and 'C' in locals() and len(A)>0 and len(B)>0 and len(C)>0: #增加判斷，避免沒有資料時出錯
+        if 'A' in locals() and 'B' in locals() and 'C' in locals() and len(A) > 0 and len(B) > 0 and len(C) > 0:
             patterns_A = find_patterns_updated(A)
             patterns_B = find_patterns_updated(B)
             pure_patterns_A = find_pure_patterns(patterns_A, B)
@@ -167,20 +165,20 @@ def highlight_risk(row):
             st.write("請先上傳檔案並完成資料前處理。")
 
     with tabs[3]:
-        if 'specific_instances_C' in locals() and len(specific_instances_C)>0: #增加判斷，避免沒有資料時出錯
-            choices = [f"Data {i+1}" for i in range(total_specific_instances_C)]
-            choice = st.selectbox("Data", [" "] + choices)
+        if 'specific_instances_C' in locals() and len(specific_instances_C) > 0:
+            choices = [f"Data {i + 1}" for i in range(total_specific_instances_C)]
+            choice = st.selectbox("選擇資料", [" "] + choices)
 
             if choice != " ":
                 index = int(choice.split(" ")[1]) - 1
-                st.subheader("RESULT")
+                st.subheader("結果展示")
 
                 c, score_A, score_B, pure_score_A, pure_score_B = specific_instances_C[index]
 
                 source = [0, 0] + [1] * len(score_A[1]) + [2] * len(score_B[1])
                 target = [1, 2] + list(range(3, 3 + len(score_A[1]))) + list(range(3 + len(score_A[1]), 3 + len(score_A[1]) + len(score_B[1])))
                 value = [score_A[0], score_B[0]] + [i[-1] for i in score_A[1]] + [i[-1] for i in score_B[1]]
-                label = [f'PATIENT:{index+1}', 'Positive P', 'Negative N'] + ['P'+str(i[0]) for i in score_A[1]] + ['N'+str(i[0]) for i in score_B[1]]
+                label = [f'PATIENT:{index + 1}', 'Positive P', 'Negative N'] + ['P' + str(i[0]) for i in score_A[1]] + ['N' + str(i[0]) for i in score_B[1]]
                 node_colors = ['#ECEFF1', '#F8BBD0', '#DCEDC8'] + ['#FFEBEE'] * len(score_A[1]) + ['#F1F8E9'] * len(score_B[1])
 
                 fig = go.Figure(data=[go.Sankey(
