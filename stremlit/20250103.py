@@ -24,14 +24,14 @@ st.set_page_config(
 st.markdown("""
     <style>
     .stTabs [data-baseweb="tab-list"] {
-        gap: 24px;
+        gap: 50px;
     }
     .stTabs [data-baseweb="tab"] {
-        height: 70px;
-        padding: 20px 30px;
+        height: 50px;
+        padding: 10px 20px;
         background-color: #f0f2f6;
-        border-radius: 10px;
-        font-weight: 1000;
+        border-radius: 5px;
+        font-weight: 600;
     }
     .stTabs [aria-selected="true"] {
         background-color: #1f77b4;
