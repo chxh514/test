@@ -361,7 +361,7 @@ def main():
     st.markdown("""
         <style>
             .stTabs>div>div>div>button {
-                font-size: 40px;  /* 修改為更大的字體大小 */
+                font-size: 50px;  /* 修改為更大的字體大小 */
                 padding: 10px 20px;  /* 增加按鈕的內邊距，讓文字更為突出 */
             }
         </style>
