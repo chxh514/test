@@ -277,9 +277,19 @@ def main():
     with tabs[3]:
         if st.session_state.analysis_results is not None:
             st.header("Results Visualization")
+      
+        #桑基圖
+        # 使用 dynamic choice 生成選項
+        patterns_A = find_patterns_updated(data['A'])
+        patterns_B = find_patterns_updated(data['B'])
+        pure_patterns_A = find_pure_patterns(patterns_A, data['B'])
+        pure_patterns_B = find_pure_patterns(patterns_B, data['A'])
+
+        # 查找滿足條件的 C 中的實例
+        specific_instances_C = find_specific_instances(data['C'], patterns_A, patterns_B, pure_patterns_A, pure_patterns_B)
+
+        # 計算 specific_instances_C 的資料筆數並儲存為變數
         total_specific_instances_C = len(specific_instances_C)
-            #桑基圖
-            # 使用 dynamic choice 生成選項
         choices = [f"Data {i+1}" for i in range(total_specific_instances_C)]
         choice = st.selectbox("Data", [" "] + choices)
         
