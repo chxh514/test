@@ -359,13 +359,67 @@ def main():
         </div>
     """, unsafe_allow_html=True)
 
-    tabs = st.tabs([
-        "📤 Upload Files",
-        "📊 Data Analysis",
-        "🔍 Misdiagnosis Detection",
-        "📈 Visualization",
-        "⚙️ Settings"
+    # 自定義的 CSS 樣式
+    tab_style = """
+        <style>
+            .streamlit-expanderHeader {
+                font-weight: normal;
+                color: #888;
+            }
+            .streamlit-expanderHeader:hover {
+                color: #fff;
+            }
+            .streamlit-expanderHeader.st-expanderHeader-stSelected {
+                font-weight: bold;
+                color: #1f77b4;
+            }
+        </style>
+    """
+    st.markdown(tab_style, unsafe_allow_html=True)
+
+    # 建立選項卡
+    tabs = st.tabs([ 
+        "📤 Upload Files", 
+        "📊 Data Analysis", 
+        "🔍 Misdiagnosis Detection", 
+        "📈 Visualization", 
+        "⚙️ Settings" 
     ])
+
+    selected_tab = st.session_state.get('selected_tab', None)
+
+    # 根據選擇的標籤來設定樣式
+    for index, tab in enumerate(tabs):
+        if selected_tab == index:
+            st.markdown(f"""
+                <style>
+                    .st-tab:nth-child({index+1}) {{
+                        font-weight: bold;
+                        color: #1f77b4;
+                    }}
+                </style>
+            """, unsafe_allow_html=True)
+        else:
+            st.markdown(f"""
+                <style>
+                    .st-tab:nth-child({index+1}) {{
+                        font-weight: normal;
+                        color: #aaa;
+                    }}
+                </style>
+            """, unsafe_allow_html=True)
+
+    # 管理當前選中的標籤
+    if tabs[0]:
+        st.session_state.selected_tab = 0
+    elif tabs[1]:
+        st.session_state.selected_tab = 1
+    elif tabs[2]:
+        st.session_state.selected_tab = 2
+    elif tabs[3]:
+        st.session_state.selected_tab = 3
+    elif tabs[4]:
+        st.session_state.selected_tab = 4
 
     # Global state management
     if 'data' not in st.session_state:
@@ -377,7 +431,7 @@ def main():
 
     # Upload Files Tab
     with tabs[0]:
-        st.markdown("<h2 style='font-weight:bold;'>File Upload</h3>", unsafe_allow_html=True)
+        st.markdown("<h2 style='font-weight:bold;'>File Upload</h2>", unsafe_allow_html=True)
         uploaded_file = st.file_uploader("File Upload", type=["csv"])
         
         if uploaded_file is not None:
