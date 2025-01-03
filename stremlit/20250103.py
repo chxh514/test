@@ -359,55 +359,14 @@ def main():
         </div>
     """, unsafe_allow_html=True)
 
-    # 自定義的 CSS 樣式
-    tab_style = """
-        <style>
-            .stRadio>label {
-                font-weight: normal;
-                color: #888;
-                font-size: 18px;
-                padding: 10px;
-            }
-            .stRadio>label:hover {
-                color: #fff;
-            }
-            .stRadio>label.stCssSelector:hover {
-                color: #1f77b4;
-                font-weight: bold;
-            }
-            .stRadio input:checked+label {
-                font-weight: bold;
-                color: #1f77b4;
-            }
-        </style>
-    """
-    st.markdown(tab_style, unsafe_allow_html=True)
+    tabs = st.tabs([
+        "📤 Upload Files",
+        "📊 Data Analysis",
+        "🔍 Misdiagnosis Detection",
+        "📈 Visualization",
+        "⚙️ Settings"
+    ])
 
-    # 建立單選框代替標籤
-    tabs = st.radio(
-        "選擇頁面",
-        options=[
-            "📤 Upload Files", 
-            "📊 Data Analysis", 
-            "🔍 Misdiagnosis Detection", 
-            "📈 Visualization", 
-            "⚙️ Settings"
-        ],
-        index=0
-    )
-
-    if tabs == "📤 Upload Files":
-        st.write("這是文件上傳頁面")
-    elif tabs == "📊 Data Analysis":
-        st.write("這是數據分析頁面")
-    elif tabs == "🔍 Misdiagnosis Detection":
-        st.write("這是誤診檢測頁面")
-    elif tabs == "📈 Visualization":
-        st.write("這是視覺化頁面")
-    elif tabs == "⚙️ Settings":
-        st.write("這是設置頁面")
-
-    
     # Global state management
     if 'data' not in st.session_state:
         st.session_state.data = None
