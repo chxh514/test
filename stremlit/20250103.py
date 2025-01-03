@@ -28,8 +28,9 @@ def main():
     page_icon="🏥",
     layout='wide',
     initial_sidebar_state='expanded')
+
     
-    # 裝飾Tabs
+# 裝飾Tabs
     st.markdown("""
     <style>
     .stTabs [data-baseweb="tab-list"] {
@@ -65,7 +66,8 @@ def main():
         border-radius: 3px;
     }
     </style>
-    """, unsafe_allow_html=True)
+""", unsafe_allow_html=True)
+
 
 #定義
 def find_patterns_updated(data):
@@ -137,6 +139,9 @@ def main():
         if uploaded_file:
             try:
                 df = pd.read_csv(uploaded_file)
+                if 'ClassT' not in df.columns:
+                    st.error("The uploaded CSV file does not contain 'ClassT' column.")
+                    return
                 st.session_state.data = df
                 st.success("File uploaded successfully!")
                 st.write("Data Preview:", df.head())
@@ -339,6 +344,7 @@ def main():
                     fig = create_sankey_diagram(sankey_data, "Patient Analysis Flow")
                     st.plotly_chart(fig)
                 
+                
                 # Risk Distribution Pie Chart
                 st.subheader("Risk Distribution")
                 risk_data = {
@@ -363,6 +369,55 @@ def main():
                 })
                 fig = px.line(timeline_data, x='Date', y='Risk Score')
                 st.plotly_chart(fig, use_container_width=True)
+
+                #風險表格
+                selected_instance = st.selectbox(
+                    "Select Patient ID",
+                    options=range(len(specific_instances)),
+                    format_func=lambda x: f"Patient {x+1}"
+                )
+                
+                if selected_instance is not None:
+                    instance_data = specific_instances[selected_instance]
+                    
+                    # Create and displaySankey diagram
+                sankey_data = create_sankey_data(
+                    instance_data[0],
+                    instance_data[1],
+                    instance_data[2],
+                    instance_data[3],
+                    instance_data[4],
+                    selected_instance
+                )
+                
+                fig = create_sankey_diagram(sankey_data, "Patient Analysis Flow")
+                st.plotly_chart(fig)
+            
+            
+            # Risk Distribution Pie Chart
+            st.subheader("Risk Distribution")
+            risk_data = {
+                'Category': ['High Risk', 'Medium Risk', 'Low Risk'],
+                'Count': [
+                    st.session_state.analysis_results['high_risk'],
+                    st.session_state.analysis_results['medium_risk'],
+                    st.session_state.analysis_results['low_risk']
+                ]
+            }
+            fig = px.pie(risk_data, values='Count', names='Category', 
+                        color_discrete_sequence=px.colors.qualitative.Set3)
+            st.plotly_chart(fig, use_container_width=True)
+
+            # Timeline Analysis
+            st.subheader("Timeline Analysis")
+            # Generate sample timeline data
+            dates = pd.date_range(start='2024-01-01', periods=10, freq='D')
+            timeline_data = pd.DataFrame({
+                'Date': dates,
+                'Risk Score': np.random.uniform(0, 1, 10)
+            })
+            fig = px.line(timeline_data, x='Date', y='Risk Score')
+            st.plotly_chart(fig, use_container_width=True)
 
     # Tab 5: Settings
     with tabs[4]:
