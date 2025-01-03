@@ -282,14 +282,14 @@ def highlight_risk(row):
 
 def main():
     """簡單的誤診檢測工具"""
-    html_templ = """
-    <div style="background-color: #C9E2F2;padding:10px;">
-    <h1 style="color: #324BD9">Misdiagnosis Detection Tool</h1>
+    st.markdown("""
+    <div style="background-color:#2970A3;padding:20px;border-radius:10px">
+    <h1 style="color:white; text-align:center;">Misdiagnosis Detection Tool</h1>
+    <p style="color:white; text-align: center">Advanced analysis for medical diagnosis validation</p>
     </div>
-    """
-    st.markdown(html_templ, unsafe_allow_html=True)
+    """, unsafe_allow_html=True)
 
-    tabs = st.tabs(['Upload Files', 'DataFrame',"Detection of Misdiagnosis","Sankey diagram","Functions"])
+    tabs = st.tabs(['📤 Upload Files', '📂 DataFrame',"🔍 Detection of Misdiagnosis","📈 Sankey diagram","📊 Functions"])
 
     with tabs[0]:
         uploaded_file = st.file_uploader("Upload your CSV file", type=["csv"])
@@ -362,7 +362,7 @@ def main():
         total_specific_instances_C = len(specific_instances_C)
         st.write(f"在 C 中滿足指定條件的實例總共有 {total_specific_instances_C} 筆資料")
 
-    # ...existing code...
+    
 
     with tabs[3]:
         # 使用 dynamic choice 生成選項
@@ -413,8 +413,6 @@ def main():
             # 在 Streamlit 中顯示 pure Sankey 圖
             st.plotly_chart(pure_fig)
 
-
-    # ...existing code...
 
     with tabs[4]:
         st.subheader("Misdiagnosis Risk Table")
