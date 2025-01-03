@@ -208,7 +208,7 @@ with tabs[1]:
         # Box plot
         fig.add_trace(
             go.Box(y=data[selected_col], name="Box Plot"),
-            row=1, col=2)
+            row=1, col=2 )
         fig.update_layout(height=400, title_text=f"Distribution Analysis of {selected_col}")
         st.plotly_chart(fig, use_container_width=True)
 
@@ -313,8 +313,7 @@ with tabs[3]:
             node_colors = ['#ECEFF1', '#F8BBD0', '#DCEDC8'] + ['#FFEBEE'] * len(score_A[1]) + ['#F1F8E9'] * len(score_B[1])
 
             # Create the Sankey diagram
-            fig = go.Figure(data=[go.Sankey(node=dict(pad=15,thickness=20,line=dict(color="#37474F", width=0.5),label=label),link=dict(source=source,target=target,value=value,color=node_colors[1:2] + [...]
-
+            fig = go.Figure(data=[go.Sankey(node=dict(pad=15,thickness=20,line=dict(color="#37474F", width=0.5),label=label),link=dict(source=source,target=target,value=value,color=node_colors[1:2] ))])# 确保颜色分配正确
             # 在 Streamlit 中顯示 Sankey 圖
             st.plotly_chart(fig)
 
@@ -333,7 +332,7 @@ with tabs[3]:
             pure_node_colors = ['#ECEFF1', '#F8BBD0', '#DCEDC8'] + ['#FFEBEE'] * len(pure_score_A[1]) + ['#F1F8E9'] * len(pure_score_B[1])
 
             # Create the pure Sankey diagram
-            pure_fig = go.Figure(data=[go.Sankey(node=dict(pad=15,thickness=20,line=dict(color="#37474F", width=0.5),label=pure_label),link=dict(source=pure_source,target=pure_target,value=pure_value,[...]
+            pure_fig = go.Figure(data=[go.Sankey(node=dict(pad=15,thickness=20,line=dict(color="#37474F", width=0.5),label=pure_label),link=dict(source=pure_source,target=pure_target,value=pure_value))])
 
             # 在 Streamlit 中顯示 pure Sankey 圖
             st.plotly_chart(pure_fig)
