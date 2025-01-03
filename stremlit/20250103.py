@@ -479,25 +479,64 @@ def main():
     with tabs[4]:
         st.header("Settings")
         
+        # Streamlit Application
+        st.title("Settings Configuration Tool")
+
         # Analysis Settings
         st.subheader("Analysis Configuration")
         col1, col2 = st.columns(2)
         with col1:
-            st.number_input("Maximum Threads", min_value=1, max_value=16, value=4)
-            st.selectbox("Color Theme", ["Default", "Light", "Dark"])
+            max_threads = st.number_input("Maximum Threads", min_value=1, max_value=16, value=4)
+            color_theme = st.selectbox("Color Theme", ["Default", "Light", "Dark"])
         with col2:
-            st.checkbox("Enable Advanced Analytics", value=True)
-            st.checkbox("Auto-save Results", value=True)
+            advanced_analytics = st.checkbox("Enable Advanced Analytics", value=True)
+            auto_save = st.checkbox("Auto-save Results", value=True)
 
         # Export Settings
         st.subheader("Export Configuration")
         col1, col2 = st.columns(2)
         with col1:
-            st.selectbox("Export Format", ["CSV", "Excel", "JSON"])
-            st.checkbox("Include Metadata", value=True)
+            export_format = st.selectbox("Export Format", ["CSV", "Excel", "JSON"])
+            include_metadata = st.checkbox("Include Metadata", value=True)
         with col2:
-            st.text_input("Export Directory", value="C:/Results")
-            st.checkbox("Auto-export", value=False)
+            export_directory = st.text_input("Export Directory", value="C:/Results")
+            auto_export = st.checkbox("Auto-export", value=False)
+
+        # Display Current Settings
+        st.subheader("Current Settings")
+        st.write("### Analysis Settings")
+        st.write(f"Maximum Threads: {max_threads}")
+        st.write(f"Color Theme: {color_theme}")
+        st.write(f"Enable Advanced Analytics: {advanced_analytics}")
+        st.write(f"Auto-save Results: {auto_save}")
+
+        st.write("### Export Settings")
+        st.write(f"Export Format: {export_format}")
+        st.write(f"Include Metadata: {include_metadata}")
+        st.write(f"Export Directory: {export_directory}")
+        st.write(f"Auto-export: {auto_export}")
+
+        # Save Settings
+        if st.button("Save Settings"):
+            # Simulate saving settings
+            settings = {
+                "Analysis Settings": {
+                    "Maximum Threads": max_threads,
+                    "Color Theme": color_theme,
+                    "Enable Advanced Analytics": advanced_analytics,
+                    "Auto-save Results": auto_save,
+                },
+                "Export Settings": {
+                    "Export Format": export_format,
+                    "Include Metadata": include_metadata,
+                    "Export Directory": export_directory,
+                    "Auto-export": auto_export,
+                },
+            }
+            # Display a success message
+            st.success("Settings saved successfully!")
+            st.write("Saved Settings:")
+            st.json(settings)  # Display saved settings in JSON format
 
         # Save Settings
         if st.button("Save Settings"):
