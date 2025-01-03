@@ -6,6 +6,7 @@ import time
 from sklearn import metrics
 import plotly.graph_objects as go
 from multiprocessing import Pool
+from stremlit.test import find_specific_instances
 
 # Page Configuration
 st.set_page_config(
