@@ -483,7 +483,7 @@ def main():
 
         # 假設 specific_instances_C 包含所有需要的資料
        data = []
-       for idx, (c, score_A, score_B, pure_score_A, pure_score_B) in enumerate(specific_instances_C):
+       for idx, (c, score_A, score_B, pure_score_A, pure_score_B) in enumerate(specific_instances_C): # type: ignore
             risk_score = max(pure_score_A[0], pure_score_B[0])  # 使用取過 pure 的分數來判斷風險高低
             if risk_score < 1000:
                 risk_level = "Very Low"
