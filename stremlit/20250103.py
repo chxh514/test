@@ -362,14 +362,20 @@ def main():
     # 自定義的 CSS 樣式
     tab_style = """
         <style>
-            .streamlit-expanderHeader {
+            .stRadio>label {
                 font-weight: normal;
                 color: #888;
+                font-size: 18px;
+                padding: 10px;
             }
-            .streamlit-expanderHeader:hover {
+            .stRadio>label:hover {
                 color: #fff;
             }
-            .streamlit-expanderHeader.st-expanderHeader-stSelected {
+            .stRadio>label.stCssSelector:hover {
+                color: #1f77b4;
+                font-weight: bold;
+            }
+            .stRadio input:checked+label {
                 font-weight: bold;
                 color: #1f77b4;
             }
@@ -377,50 +383,31 @@ def main():
     """
     st.markdown(tab_style, unsafe_allow_html=True)
 
-    # 建立選項卡
-    tabs = st.tabs([ 
-        "📤 Upload Files", 
-        "📊 Data Analysis", 
-        "🔍 Misdiagnosis Detection", 
-        "📈 Visualization", 
-        "⚙️ Settings" 
-    ])
+    # 建立單選框代替標籤
+    tabs = st.radio(
+        "選擇頁面",
+        options=[
+            "📤 Upload Files", 
+            "📊 Data Analysis", 
+            "🔍 Misdiagnosis Detection", 
+            "📈 Visualization", 
+            "⚙️ Settings"
+        ],
+        index=0
+    )
 
-    selected_tab = st.session_state.get('selected_tab', None)
+    if tabs == "📤 Upload Files":
+        st.write("這是文件上傳頁面")
+    elif tabs == "📊 Data Analysis":
+        st.write("這是數據分析頁面")
+    elif tabs == "🔍 Misdiagnosis Detection":
+        st.write("這是誤診檢測頁面")
+    elif tabs == "📈 Visualization":
+        st.write("這是視覺化頁面")
+    elif tabs == "⚙️ Settings":
+        st.write("這是設置頁面")
 
-    # 根據選擇的標籤來設定樣式
-    for index, tab in enumerate(tabs):
-        if selected_tab == index:
-            st.markdown(f"""
-                <style>
-                    .st-tab:nth-child({index+1}) {{
-                        font-weight: bold;
-                        color: #1f77b4;
-                    }}
-                </style>
-            """, unsafe_allow_html=True)
-        else:
-            st.markdown(f"""
-                <style>
-                    .st-tab:nth-child({index+1}) {{
-                        font-weight: normal;
-                        color: #aaa;
-                    }}
-                </style>
-            """, unsafe_allow_html=True)
-
-    # 管理當前選中的標籤
-    if tabs[0]:
-        st.session_state.selected_tab = 0
-    elif tabs[1]:
-        st.session_state.selected_tab = 1
-    elif tabs[2]:
-        st.session_state.selected_tab = 2
-    elif tabs[3]:
-        st.session_state.selected_tab = 3
-    elif tabs[4]:
-        st.session_state.selected_tab = 4
-
+    
     # Global state management
     if 'data' not in st.session_state:
         st.session_state.data = None
@@ -532,8 +519,6 @@ def main():
 
     # Settings Tab
     with tabs[4]:
-        st.header("Settings")
-        
         # Streamlit Application
         st.title("Settings Configuration Tool")
 
