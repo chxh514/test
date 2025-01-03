@@ -358,12 +358,7 @@ def main():
             <p style="color: white; text-align: center">Advanced analysis for medical diagnosis validation</p>
         </div>
     """, unsafe_allow_html=True)
-    st.markdown("""
-        <style>
-            .stTabs>div>div>div>button {
-                font-size: 10000px;  /* 修改為更大的字體大小 */}
-        </style>
-    """, unsafe_allow_html=True)
+
     tabs = st.tabs([
         "📤 Upload Files",
         "📊 Data Analysis",
