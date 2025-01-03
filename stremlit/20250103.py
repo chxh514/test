@@ -279,7 +279,8 @@ def main():
             st.header("Results Visualization")
 
             #桑基圖
-             # 使用 dynamic choice 生成選項
+            # 使用 dynamic choice 生成選項
+        total_specific_instances_C = len(specific_instances_C)
         choices = [f"Data {i+1}" for i in range(total_specific_instances_C)]
         choice = st.selectbox("Data", [" "] + choices)
         
