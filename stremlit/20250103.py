@@ -292,17 +292,18 @@ def main():
     tabs = st.tabs(['Upload Files', 'DataFrame',"Detection of Misdiagnosis","Sankey diagram","Functions"])
 
     with tabs[0]:
-        uploaded_file = st.file_uploader("File Upload", type=["csv"])
+        uploaded_file = st.file_uploader("Upload your CSV file", type=["csv"])
 
         if uploaded_file is not None:
             result = DataPreprocessing(uploaded_file)
             if result is not None:
                 acc, A, B, C, IdT, ClassT = result
                 Method(acc, A, B, C, IdT, ClassT)
-    with tabs[1]:
-         uploaded_files = st.file_uploader("**上傳所要檢測的數據**", type = ['csv'])
 
-    if uploaded_files is not None:
+    with tabs[1]:
+        uploaded_files = st.file_uploader("**上傳所要檢測的數據**", type = ['csv'])
+
+        if uploaded_files is not None:
             df = pd.read_csv(uploaded_files, sep=',', header=None, skiprows=1)
 
             st.write("Data Preview:")
@@ -345,137 +346,107 @@ def main():
                             width=800, height=600)
 
             st.plotly_chart(fig)
-         
+
 
     with tabs[2]:
-        if st.session_state.data is not None:
-            st.header("Data Analysis")
-            
-            # Basic Statistics
-            st.subheader("Basic Statistics")
-            col1, col2, col3 = st.columns(3)
-            with col1:
-                st.metric("Total Records", len(st.session_state.data))
-            with col2:
-                st.metric("Features", len(st.session_state.data.columns))
-            with col3:
-                st.metric("Missing Values", st.session_state.data.isnull().sum().sum())
+        # 分析模式並查找 A 和 B 的純模式
+        patterns_A = find_patterns_updated(A)
+        patterns_B = find_patterns_updated(B)
+        pure_patterns_A = find_pure_patterns(patterns_A, B)
+        pure_patterns_B = find_pure_patterns(patterns_B, A)
 
-            # Data Distribution
-            st.subheader("Data Distribution")
-            numeric_cols = st.session_state.data.select_dtypes(include=[np.number]).columns
-            selected_col = st.selectbox("Select column for distribution analysis", numeric_cols)
-            
-            fig = make_subplots(rows=1, cols=2)
-            # Histogram
-            fig.add_trace(
-                go.Histogram(x=st.session_state.data[selected_col], name="Distribution"),
-                row=1, col=1
-            )
-            # Box plot
-            fig.add_trace(
-                go.Box(y=st.session_state.data[selected_col], name="Box Plot"),
-                row=1, col=2
-            )
-            fig.update_layout(height=400, title_text=f"Distribution Analysis of {selected_col}")
-            st.plotly_chart(fig, use_container_width=True)
+        # 查找滿足條件的 C 中的實例
+        specific_instances_C = find_specific_instances(C, patterns_A, patterns_B, pure_patterns_A, pure_patterns_B)
 
-            # Correlation Matrix
-            st.subheader("Correlation Matrix")
-            corr = st.session_state.data[numeric_cols].corr()
-            fig = px.imshow(corr, color_continuous_scale='RdBu')
-            st.plotly_chart(fig, use_container_width=True)
+        # 計算 specific_instances_C 的資料筆數並儲存為變數
+        total_specific_instances_C = len(specific_instances_C)
+        st.write(f"在 C 中滿足指定條件的實例總共有 {total_specific_instances_C} 筆資料")
 
+    # ...existing code...
 
     with tabs[3]:
-          if st.session_state.data is not None:
-            st.header("Misdiagnosis Detection")
+        # 使用 dynamic choice 生成選項
+        choices = [f"Data {i+1}" for i in range(total_specific_instances_C)]
+        choice = st.selectbox("Data", [" "] + choices)
+        
+        if choice != " ":
+            index = int(choice.split(" ")[1]) - 1  # 轉換選擇為索引
+            st.subheader("RESULT")
+            
+            # 根據選擇的索引獲取資料
+            c, score_A, score_B, pure_score_A, pure_score_B = specific_instances_C[index]
 
-            # Parameters
-            st.subheader("Detection Parameters")
-            col1, col2 = st.columns(2)
-            with col1:
-                threshold = st.slider("Risk Threshold", 0.0, 1.0, 0.5)
-            with col2:
-                confidence = st.slider("Confidence Level", 0.8, 0.99, 0.95)
+            # 定義 Sankey 圖的 source, target 和 value 陣列
+            source = [0, 0] + [1] * len(score_A[1]) + [2] * len(score_B[1])
+            target = [1, 2] + list(range(3, 3 + len(score_A[1]))) + list(range(3 + len(score_A[1]), 3 + len(score_A[1]) + len(score_B[1])))
+            value = [score_A[0], score_B[0]] + [i[-1] for i in score_A[1]] + [i[-1] for i in score_B[1]]
+            
+            # 定義節點標籤，PATIENT 標籤將顯示所選資料的 PATIENT_ID
+            label = [f'PATIENT:{index+1}', 'Positive P', 'Negative N'] + ['P'+str(i[0]) for i in score_A[1]] + ['N'+str(i[0]) for i in score_B[1]]
 
-            if st.button("Run Detection"):
-                with st.spinner("Running misdiagnosis detection..."):
-                    # Simulated analysis (replace with actual detection logic)
-                    time.sleep(2)
-                    st.session_state.analysis_results = {
-                        'high_risk': np.random.randint(1, 10),
-                        'medium_risk': np.random.randint(5, 15),
-                        'low_risk': np.random.randint(10, 30),
-                        'confidence_score': confidence
-                    }
-                
-                # Display Results
-                col1, col2, col3 = st.columns(3)
-                with col1:
-                    st.metric("High Risk Cases", st.session_state.analysis_results['high_risk'])
-                with col2:
-                    st.metric("Medium Risk Cases", st.session_state.analysis_results['medium_risk'])
-                with col3:
-                    st.metric("Low Risk Cases", st.session_state.analysis_results['low_risk'])
+            # Define node colors
+            node_colors = ['#ECEFF1', '#F8BBD0', '#DCEDC8'] + ['#FFEBEE'] * len(score_A[1]) + ['#F1F8E9'] * len(score_B[1])
 
+            # Create the Sankey diagram
+            fig = go.Figure(data=[go.Sankey(node=dict(pad=15,thickness=20,line=dict(color="#37474F", width=0.5),label=label),link=dict(source=source,target=target,value=value,color=node_colors[1:2] + node_colors[2:3] + ['#FFEBEE'] * len(score_A[1]) + ['#F1F8E9'] * len(score_B[1])))])  # Use colors for links similar to node colors
+
+            # 在 Streamlit 中顯示 Sankey 圖
+            st.plotly_chart(fig)
+
+            # 顯示取過 pure 的桑基圖
+            st.subheader("Pure RESULT")
+            
+            # 定義 pure Sankey 圖的 source, target 和 value 陣列
+            pure_source = [0, 0] + [1] * len(pure_score_A[1]) + [2] * len(pure_score_B[1])
+            pure_target = [1, 2] + list(range(3, 3 + len(pure_score_A[1]))) + list(range(3 + len(pure_score_A[1]), 3 + len(pure_score_A[1]) + len(pure_score_B[1])))
+            pure_value = [pure_score_A[0], pure_score_B[0]] + [i[-1] for i in pure_score_A[1]] + [i[-1] for i in pure_score_B[1]]
+            
+            # 定義 pure 節點標籤
+            pure_label = [f'PATIENT:{index+1}', 'Positive P', 'Negative N'] + ['P'+str(i[0]) for i in pure_score_A[1]] + ['N'+str(i[0]) for i in pure_score_B[1]]
+
+            # Define pure node colors
+            pure_node_colors = ['#ECEFF1', '#F8BBD0', '#DCEDC8'] + ['#FFEBEE'] * len(pure_score_A[1]) + ['#F1F8E9'] * len(pure_score_B[1])
+
+            # Create the pure Sankey diagram
+            pure_fig = go.Figure(data=[go.Sankey(node=dict(pad=15,thickness=20,line=dict(color="#37474F", width=0.5),label=pure_label),link=dict(source=pure_source,target=pure_target,value=pure_value,color=pure_node_colors[1:2] + pure_node_colors[2:3] + ['#FFEBEE'] * len(pure_score_A[1]) + ['#F1F8E9'] * len(pure_score_B[1])))])  # Use colors for links similar to node colors
+
+            # 在 Streamlit 中顯示 pure Sankey 圖
+            st.plotly_chart(pure_fig)
+
+
+    # ...existing code...
 
     with tabs[4]:
-          if st.session_state.analysis_results is not None:
-            st.header("Results Visualization")
+        st.subheader("Misdiagnosis Risk Table")
 
-            # Risk Distribution Pie Chart
-            st.subheader("Risk Distribution")
-            risk_data = {
-                'Category': ['High Risk', 'Medium Risk', 'Low Risk'],
-                'Count': [
-                    st.session_state.analysis_results['high_risk'],
-                    st.session_state.analysis_results['medium_risk'],
-                    st.session_state.analysis_results['low_risk']
-                ]
-            }
-            fig = px.pie(risk_data, values='Count', names='Category', 
-                        color_discrete_sequence=px.colors.qualitative.Set3)
-            st.plotly_chart(fig, use_container_width=True)
-
-            # Timeline Analysis
-            st.subheader("Timeline Analysis")
-            # Generate sample timeline data
-            dates = pd.date_range(start='2024-01-01', periods=10, freq='D')
-            timeline_data = pd.DataFrame({
-                'Date': dates,
-                'Risk Score': np.random.uniform(0, 1, 10)
+        # 假設 specific_instances_C 包含所有需要的資料
+        data = []
+        for idx, (c, score_A, score_B, pure_score_A, pure_score_B) in enumerate(specific_instances_C):
+            risk_score = max(pure_score_A[0], pure_score_B[0])  # 使用取過 pure 的分數來判斷風險高低
+            if risk_score < 1000:
+                risk_level = "Very Low"
+                status = ""
+            elif risk_score < 2000:
+                risk_level = "Low"
+                status = ""
+            elif risk_score < 3000:
+                risk_level = "High"
+                status = "⚠️"
+            else:
+                risk_level = "Very High"
+                status = "⚠️"
+            data.append({
+                "Status": status,
+                "ID": idx + 1,
+                "NS": pure_score_A[0],  # 使用取過 pure 的分數
+                "PS": pure_score_B[0],  # 使用取過 pure 的分數
+                "Label": ClassT[idx],
+                "Misdiagnosis Risk": risk_level
             })
-            fig = px.line(timeline_data, x='Date', y='Risk Score')
-            st.plotly_chart(fig, use_container_width=True)
 
-    
-    with tabs[5]:
-        st.header("Settings")
-        
-        # Analysis Settings
-        st.subheader("Analysis Configuration")
-        col1, col2 = st.columns(2)
-        with col1:
-            st.number_input("Maximum Threads", min_value=1, max_value=16, value=4)
-            st.selectbox("Color Theme", ["Default", "Light", "Dark"])
-        with col2:
-            st.checkbox("Enable Advanced Analytics", value=True)
-            st.checkbox("Auto-save Results", value=True)
+        df_risk = pd.DataFrame(data)
+        styled_df = df_risk.style.apply(highlight_risk, axis=1)
+        st.dataframe(styled_df, use_container_width=False, height=600)
 
-        # Export Settings
-        st.subheader("Export Configuration")
-        col1, col2 = st.columns(2)
-        with col1:
-            st.selectbox("Export Format", ["CSV", "Excel", "JSON"])
-            st.checkbox("Include Metadata", value=True)
-        with col2:
-            st.text_input("Export Directory", value="C:/Results")
-            st.checkbox("Auto-export", value=False)
-
-        # Save Settings
-        if st.button("Save Settings"):
-            st.success("Settings saved successfully!")
-
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()
