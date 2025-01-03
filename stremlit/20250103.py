@@ -504,21 +504,6 @@ def main():
 
         # Save Settings
         if st.button("Save Settings", key="save_settings"):
-            # Simulate saving settings
-            settings = {
-                "Analysis Settings": {
-                    "Maximum Threads": max_threads,
-                    "Color Theme": color_theme,
-                    "Enable Advanced Analytics": advanced_analytics,
-                    "Auto-save Results": auto_save,
-                },
-                "Export Settings": {
-                    "Export Format": export_format,
-                    "Include Metadata": include_metadata,
-                    "Export Directory": export_directory,
-                    "Auto-export": auto_export,
-                },
-            }
             # Display a success message
             st.success("Settings saved successfully!")
             st.write("Saved Settings:")
