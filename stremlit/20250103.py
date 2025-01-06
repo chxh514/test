@@ -148,12 +148,6 @@ def find_specific_instances(C, patterns_A, patterns_B, pure_patterns_A, pure_pat
 
     return satisfying_instances
 
-def main():
-    if st.session_state.processed_data is not None:
-        total_specific_instances_C = len(st.session_state.processed_data)  # 計算總數
-    else:
-        total_specific_instances_C = 0  # 預設為 0
-
 def Zscore(v):
     if v == 0.0:
         return 0.0
@@ -260,6 +254,13 @@ def highlight_risk(row):
     return [''] * len(row)
 
 def main():
+    if st.session_state.processed_data is not None:
+        total_specific_instances_C = len(st.session_state.processed_data)  # 計算總數
+    else:
+        total_specific_instances_C = 0  # 預設為 0
+
+
+        
     st.markdown("""
         <div style="background-color: #1f77b4; padding: 20px; border-radius: 10px; margin-bottom: 30px">
             <h1 style="color: white; text-align: center">Misdiagnosis Detection Tool</h1>
