@@ -381,7 +381,7 @@ def main():
         st.markdown("<h2 style='font-weight:bold;'>File Upload</h3>", unsafe_allow_html=True)
         uploaded_file = st.file_uploader("File Upload", type=["csv"])
         
-         if uploaded_files is not None:
+        if uploaded_files is not None:
             df = pd.read_csv(uploaded_files, sep=',', header=None, skiprows=1)
 
             st.write("Data Preview:")
