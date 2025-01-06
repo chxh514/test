@@ -269,6 +269,14 @@ def main():
         "📊 Functions"
     ])
 
+
+def main():
+    if st.session_state.processed_data is not None:
+        total_specific_instances_C = len(st.session_state.processed_data)  # 計算總數
+    else:
+        total_specific_instances_C = 0  # 預設為 0
+
+    
     # Global state management
     if 'data' not in st.session_state:
         st.session_state.data = None
@@ -353,7 +361,7 @@ def main():
             st.dataframe(risk_df)
 
 
-            
+
     with tabs[3]:
         # 使用 dynamic choice 生成選項
         choices = [f"Data {i+1}" for i in range(total_specific_instances_C)]
