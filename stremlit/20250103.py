@@ -381,19 +381,50 @@ def main():
         st.markdown("<h2 style='font-weight:bold;'>File Upload</h3>", unsafe_allow_html=True)
         uploaded_file = st.file_uploader("File Upload", type=["csv"])
         
-        if uploaded_file is not None:
-            try:
-                result = DataPreprocessing(uploaded_file)
-                if result is not None:
-                    acc, A, B, C, IdT, ClassT = result
-                    st.session_state.processed_data = {
-                        'acc': acc, 'A': A, 'B': B, 'C': C, 
-                        'IdT': IdT, 'ClassT': ClassT
-                    }
-                    Method(acc, A, B, C, IdT, ClassT)
-                    st.success("Data processed successfully!")
-            except Exception as e:
-                st.error(f"Error processing file: {str(e)}")
+         if uploaded_files is not None:
+            df = pd.read_csv(uploaded_files, sep=',', header=None, skiprows=1)
+
+            st.write("Data Preview:")
+            st.write(df)
+
+            L = df.T.values.tolist()
+            
+            # 獲取不同分數和標籤
+            ANS, ScoreA, ScoreB = np.array(L[1]), np.array(L[2]), np.array(L[3])
+            
+            # 計算 ScoreA 的 ROC 曲線和 AUC
+            fpr_A, tpr_A, thresholds_A = metrics.roc_curve(ANS, ScoreA, pos_label=2)
+            auc_scoreA = metrics.auc(fpr_A, tpr_A)
+            st.write(f"AUC_ScoreA = {auc_scoreA}")
+            
+            # 計算 ScoreB 的 ROC 曲線和 AUC
+            fpr_B, tpr_B, thresholds_B = metrics.roc_curve(ANS, ScoreB, pos_label=4)
+            auc_scoreB = metrics.auc(fpr_B, tpr_B)
+            st.write(f"AUC_ScoreB = {auc_scoreB}")
+
+            fig = go.Figure()
+
+            fig.add_trace(go.Scatter(x=fpr_A, y=tpr_A, mode='lines', name=f'ScoreA (AUC = {auc_scoreA:.2f})',
+                             line=dict(color='red', width=2)))
+
+            # ScoreB 的 ROC 曲線
+            fig.add_trace(go.Scatter(x=fpr_B, y=tpr_B, mode='lines', name=f'ScoreB (AUC = {auc_scoreB:.2f})',
+                                    line=dict(color='blue', width=2)))
+
+            # 添加一條對角線代表隨機猜測
+            fig.add_trace(go.Scatter(x=[0, 1], y=[0, 1], mode='lines', name='Random Guess',
+                                    line=dict(color='gray', dash='dash')))
+
+            # 設定圖表標題和軸標籤
+            fig.update_layout(title='ROC Curve',
+                            xaxis_title='False Positive Rate (FPR)',
+                            yaxis_title='True Positive Rate (TPR)',
+                            xaxis=dict(showgrid=True, gridwidth=1, gridcolor='LightGray'),
+                            yaxis=dict(showgrid=True, gridwidth=1, gridcolor='LightGray'),
+                            width=800, height=600)
+
+            st.plotly_chart(fig)
+
 
     # Data Analysis Tab
     with tabs[1]:
