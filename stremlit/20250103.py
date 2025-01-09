@@ -331,6 +331,25 @@ def highlight_risk(row):
         return ['background-color: #aec6cf'] * len(row)  # 柔和的藍色
     return [''] * len(row)
 
+def create_sankey_data(instance, score_A, score_B, pure_score_A, pure_score_B, selected_instance):
+    labels = ['Instance', 'Score A', 'Score B', 'Pure Score A', 'Pure Score B']
+    source = [0, 0, 0, 0]
+    target = [1, 2, 3, 4]
+    values = [score_A[0], score_B[0], pure_score_A[0], pure_score_B[0]]
+    node_colors = ["blue", "green", "red", "orange", "purple"]
+    link_colors = ["rgba(31, 119, 180, 0.8)", "rgba(44, 160, 44, 0.8)", "rgba(255, 127, 14, 0.8)", "rgba(214, 39, 40, 0.8)"]
+
+    sankey_data = {
+        'labels': labels,
+        'source': source,
+        'target': target,
+        'values': values,
+        'node_colors': node_colors,
+        'link_colors': link_colors
+    }
+
+    return sankey_data
+
 def create_sankey_diagram(sankey_data, title):
     fig = go.Figure(data=[go.Sankey(
         node=dict(
