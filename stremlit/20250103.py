@@ -398,21 +398,23 @@ def main():
     # Upload Files Tab
     with tabs[0]:
         st.markdown("<h2 style='font-weight:bold;'>File Upload</h3>", unsafe_allow_html=True)
-        uploaded_file = st.file_uploader("File Upload", type=["csv"])
-        
-        if uploaded_file is not None:
-            try:
-                result = DataPreprocessing(uploaded_file)
-                if result is not None:
-                    acc, A, B, C, IdT, ClassT = result
-                    st.session_state.processed_data = {
-                        'acc': acc, 'A': A, 'B': B, 'C': C, 
-                        'IdT': IdT, 'ClassT': ClassT
-                    }
-                    Method(acc, A, B, C, IdT, ClassT)
-                    st.success("Data processed successfully!")
-            except Exception as e:
-                st.error(f"Error processing file: {str(e)}")
+    uploaded_file = st.file_uploader("File Upload", type=["csv"])
+    
+    if uploaded_file is not None:
+        try:
+            result = DataPreprocessing(uploaded_file)
+            if result is not None:
+                acc, A, B, C, IdT, ClassT = result
+                st.session_state.processed_data = {
+                    'acc': acc, 'A': A, 'B': B, 'C': C, 
+                    'IdT': IdT, 'ClassT': ClassT
+                }
+                Method(acc, A, B, C, IdT, ClassT)
+                st.success("Data processed successfully!")
+            else:
+                st.error("DataPreprocessing returned None.")
+        except Exception as e:
+            st.error(f"Error processing file: {str(e)}")
 
     # Data Analysis Tab
     with tabs[1]:
