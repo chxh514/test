@@ -500,7 +500,7 @@ def main():
 
             node_colors = ['#ECEFF1', '#F8BBD0', '#DCEDC8'] + ['#FFEBEE'] * len(score_A[1]) + ['#F1F8E9'] * len(score_B[1])
 
-            fig = go.Figure(data=[go.Sankey(node=dict(pad=15, thickness=20, line=dict(color="#37474F", width=0.5), label=label), link=dict(source=source, target=target, value=value, color=node_colors[1:])])
+            fig = go.Figure(data=[go.Sankey(node=dict(pad=15, thickness=20, line=dict(color="#37474F", width=0.5), label=label), link=dict(source=source, target=target, value=value, color=node_colors))])
 
             st.plotly_chart(fig)
 
@@ -514,7 +514,7 @@ def main():
 
             pure_node_colors = ['#ECEFF1', '#F8BBD0', '#DCEDC8'] + ['#FFEBEE'] * len(pure_score_A[1]) + ['#F1F8E9'] * len(pure_score_B[1])
 
-            pure_fig = go.Figure(data=[go.Sankey(node=dict(pad=15, thickness=20, line=dict(color="#37474F", width=0.5), label=pure_label), link=dict(source=pure_source, target=pure_target, value=pure_value)])])
+            pure_fig = go.Figure(data=[go.Sankey(node=dict(pad=15, thickness=20, line=dict(color="#37474F", width=0.5), label=pure_label), link=dict(source=pure_source, target=pure_target, value=pure_value))])
 
             st.plotly_chart(pure_fig)
 
