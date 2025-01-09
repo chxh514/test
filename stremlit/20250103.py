@@ -474,7 +474,7 @@ def main():
        if st.session_state.processed_data is not None:
         st.header("Visualization")
 
-        specific_instances = find_specific_instances(
+        specific_instances_C = find_specific_instances(
             st.session_state.processed_data['C'],
             find_patterns_updated(st.session_state.processed_data['A']),
             find_patterns_updated(st.session_state.processed_data['B']),
@@ -482,35 +482,35 @@ def main():
             find_pure_patterns(find_patterns_updated(st.session_state.processed_data['B']), st.session_state.processed_data['A'])
         )
 
-        total_specific_instances = len(specific_instances)
-        choices = [f"Data {i+1}" for i in range(total_specific_instances)]
+        total_specific_instances_C = len(specific_instances_C)
+        choices = [f"Data {i + 1}" for i in range(total_specific_instances_C)]
         choice = st.selectbox("Data", [" "] + choices)
-        
+
         if choice != " ":
             index = int(choice.split(" ")[1]) - 1
             st.subheader("RESULT")
-            
-            c, score_A, score_B, pure_score_A, pure_score_B = specific_instances[index]
+
+            c, score_A, score_B, pure_score_A, pure_score_B = specific_instances_C[index]
 
             source = [0, 0] + [1] * len(score_A[1]) + [2] * len(score_B[1])
             target = [1, 2] + list(range(3, 3 + len(score_A[1]))) + list(range(3 + len(score_A[1]), 3 + len(score_A[1]) + len(score_B[1])))
             value = [score_A[0], score_B[0]] + [i[-1] for i in score_A[1]] + [i[-1] for i in score_B[1]]
-            
-            label = [f'PATIENT:{index+1}', 'Positive P', 'Negative N'] + ['P'+str(i[0]) for i in score_A[1]] + ['N'+str(i[0]) for i in score_B[1]]
+
+            label = [f'PATIENT:{index + 1}', 'Positive P', 'Negative N'] + ['P' + str(i[0]) for i in score_A[1]] + ['N' + str(i[0]) for i in score_B[1]]
 
             node_colors = ['#ECEFF1', '#F8BBD0', '#DCEDC8'] + ['#FFEBEE'] * len(score_A[1]) + ['#F1F8E9'] * len(score_B[1])
 
-            fig = go.Figure(data=[go.Sankey(node=dict(pad=15, thickness=20, line=dict(color="#37474F", width=0.5), label=label), link=dict(source=source, target=target, value=value, color=node_colors))])
+            fig = go.Figure(data=[go.Sankey(node=dict(pad=15, thickness=20, line=dict(color="#37474F", width=0.5), label=label), link=dict(source=source, target=target, value=value, color=node_colors[1:]))])
 
             st.plotly_chart(fig)
 
             st.subheader("Pure RESULT")
-            
+
             pure_source = [0, 0] + [1] * len(pure_score_A[1]) + [2] * len(pure_score_B[1])
             pure_target = [1, 2] + list(range(3, 3 + len(pure_score_A[1]))) + list(range(3 + len(pure_score_A[1]), 3 + len(pure_score_A[1]) + len(pure_score_B[1])))
             pure_value = [pure_score_A[0], pure_score_B[0]] + [i[-1] for i in pure_score_A[1]] + [i[-1] for i in pure_score_B[1]]
-            
-            pure_label = [f'PATIENT:{index+1}', 'Positive P', 'Negative N'] + ['P'+str(i[0]) for i in pure_score_A[1]] + ['N'+str(i[0]) for i in pure_score_B[1]]
+
+            pure_label = [f'PATIENT:{index + 1}', 'Positive P', 'Negative N'] + ['P' + str(i[0]) for i in pure_score_A[1]] + ['N' + str(i[0]) for i in pure_score_B[1]]
 
             pure_node_colors = ['#ECEFF1', '#F8BBD0', '#DCEDC8'] + ['#FFEBEE'] * len(pure_score_A[1]) + ['#F1F8E9'] * len(pure_score_B[1])
 
