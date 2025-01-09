@@ -374,7 +374,6 @@ def main():
                         }
                         result_df, csv = Method(acc, A, B, C, IdT, ClassT)
                         if result_df is not None:
-                            st.session_state.analysis_
                             st.session_state.analysis_results = result_df
                             
                             # Provide download button for results
