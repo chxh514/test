@@ -477,7 +477,7 @@ def main():
             st.header("Visualization")
 
         specific_instances = find_specific_instances(
-            st.session_state.processed_data['C'],
+        st.session_state.processed_data['C'],
             find_patterns_updated(st.session_state.processed_data['A']),
             find_patterns_updated(st.session_state.processed_data['B']),
             find_pure_patterns(find_patterns_updated(st.session_state.processed_data['A']), st.session_state.processed_data['B']),
