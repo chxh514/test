@@ -471,7 +471,9 @@ def main():
 
     # Visualization Tab
     with tabs[3]:
-          # 使用 dynamic choice 生成選項
+        # 計算 specific_instances_C 的資料筆數並儲存為變數
+        total_specific_instances_C = len(specific_instances_C)
+        # 使用 dynamic choice 生成選項
         choices = [f"Data {i+1}" for i in range(total_specific_instances_C)]
         choice = st.selectbox("Data", [" "] + choices)
         
@@ -520,7 +522,7 @@ def main():
             st.plotly_chart(pure_fig)
     # Settings Tab
 
-    
+
     with tabs[4]:
         # Streamlit Application
         st.header("Settings Configuration Tool")
