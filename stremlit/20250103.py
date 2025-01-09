@@ -471,8 +471,8 @@ def main():
 
     # Visualization Tab
     with tabs[3]:
-         if st.session_state.processed_data is not None:
-        st.header("Visualization")
+        if st.session_state.processed_data is not None:
+            st.header("Visualization")
 
         specific_instances = find_specific_instances(
             st.session_state.processed_data['C'],
