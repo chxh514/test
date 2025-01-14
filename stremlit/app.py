@@ -416,7 +416,13 @@ def main():
 
     with tabs[4]:
         st.subheader("Misdiagnosis Risk Table")
+        
+        # 查找滿足條件的 C 中的實例
+        specific_instances_C = find_specific_instances(C, patterns_A, patterns_B, pure_patterns_A, pure_patterns_B)
 
+        # 計算 specific_instances_C 的資料筆數並儲存為變數
+        total_specific_instances_C = len(specific_instances_C)
+        
         # 假設 specific_instances_C 包含所有需要的資料
         data = []
         for idx, (c, score_A, score_B, pure_score_A, pure_score_B) in enumerate(specific_instances_C):
