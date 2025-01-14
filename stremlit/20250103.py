@@ -491,12 +491,18 @@ def main():
         total_specific_instances = len(specific_instances)
         choices = [f"Data {i+1}" for i in range(total_specific_instances)]
         choice = st.selectbox("Data", [" "] + choices)
-        
-        index = int(choice.split(" ")[1]) - 1  # 轉換選擇為索引
-        st.subheader("RESULT")
-            
-        # 根據選擇的索引獲取資料
-        c, score_A, score_B, pure_score_A, pure_score_B = specific_instances_C[index]
+
+        if choice != " ":
+            index_str = choice.split(" ")[1]
+            if index_str.isdigit():
+                index = int(index_str) - 1  # 轉換選擇為索引
+            else:
+                st.error("Invalid selection. Please choose a valid option.")
+                return
+
+            st.subheader("RESULT")
+            # 根據選擇的索引獲取資料
+            c, score_A, score_B, pure_score_A, pure_score_B = specific_instances_C[index]
 
         # 定義 Sankey 圖的 source, target 和 value 陣列
         source = [0, 0] + [1] * len(score_A[1]) + [2] * len(score_B[1])
