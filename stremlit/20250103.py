@@ -492,72 +492,80 @@ def main():
         choices = [f"Data {i+1}" for i in range(total_specific_instances)]
         choice = st.selectbox("Data", [" "] + choices)
         
-        if choice != " ":
-            index = int(choice.split(" ")[1]) - 1
-            st.subheader("RESULT")
+        index = int(choice.split(" ")[1]) - 1  # 轉換選擇為索引
+        st.subheader("RESULT")
             
-            c, score_A, score_B, pure_score_A, pure_score_B = specific_instances[index]
+        # 根據選擇的索引獲取資料
+        c, score_A, score_B, pure_score_A, pure_score_B = specific_instances_C[index]
 
-            source = [0, 0] + [1] * len(score_A[1]) + [2] * len(score_B[1])
-            target = [1, 2] + list(range(3, 3 + len(score_A[1]))) + list(range(3 + len(score_A[1]), 3 + len(score_A[1]) + len(score_B[1])))
-            value = [score_A[0], score_B[0]] + [i[-1] for i in score_A[1]] + [i[-1] for i in score_B[1]]
-            
-            label = [f'PATIENT:{index+1}', 'Positive P', 'Negative N'] + ['P'+str(i[0]) for i in score_A[1]] + ['N'+str(i[0]) for i in score_B[1]]
+        # 定義 Sankey 圖的 source, target 和 value 陣列
+        source = [0, 0] + [1] * len(score_A[1]) + [2] * len(score_B[1])
+        target = [1, 2] + list(range(3, 3 + len(score_A[1]))) + list(range(3 + len(score_A[1]), 3 + len(score_A[1]) + len(score_B[1])))
+        value = [score_A[0], score_B[0]] + [i[-1] for i in score_A[1]] + [i[-1] for i in score_B[1]]
+                
+        # 定義節點標籤，PATIENT 標籤將顯示所選資料的 PATIENT_ID
+        label = [f'PATIENT:{index+1}', 'Positive P', 'Negative N'] + ['P'+str(i[0]) for i in score_A[1]] + ['N'+str(i[0]) for i in score_B[1]]
 
-            node_colors = ['#ECEFF1', '#F8BBD0', '#DCEDC8'] + ['#FFEBEE'] * len(score_A[1]) + ['#F1F8E9'] * len(score_B[1])
+        # Define node colors
+        node_colors = ['#ECEFF1', '#F8BBD0', '#DCEDC8'] + ['#FFEBEE'] * len(score_A[1]) + ['#F1F8E9'] * len(score_B[1])
 
-            fig = go.Figure(data=[go.Sankey(node=dict(pad=15, thickness=20, line=dict(color="#37474F", width=0.5), label=label), link=dict(source=source, target=target, value=value, color=node_colors))])
+        # Create the Sankey diagram
+        fig = go.Figure(data=[go.Sankey(node=dict(pad=15,thickness=20,line=dict(color="#37474F", width=0.5),label=label),link=dict(source=source,target=target,value=value,color=node_colors[1:2] + node_colors[2:3] + ['#FFEBEE'] * len(score_A[1]) + ['#F1F8E9'] * len(score_B[1])))])  # Use colors for links similar to node colors
 
-            st.plotly_chart(fig)
+        # 在 Streamlit 中顯示 Sankey 圖
+        st.plotly_chart(fig)
 
-            st.subheader("Pure RESULT")
-            
-            pure_source = [0, 0] + [1] * len(pure_score_A[1]) + [2] * len(pure_score_B[1])
-            pure_target = [1, 2] + list(range(3, 3 + len(pure_score_A[1]))) + list(range(3 + len(pure_score_A[1]), 3 + len(pure_score_A[1]) + len(pure_score_B[1])))
-            pure_value = [pure_score_A[0], pure_score_B[0]] + [i[-1] for i in pure_score_A[1]] + [i[-1] for i in pure_score_B[1]]
-            
-            pure_label = [f'PATIENT:{index+1}', 'Positive P', 'Negative N'] + ['P'+str(i[0]) for i in pure_score_A[1]] + ['N'+str(i[0]) for i in pure_score_B[1]]
+        # 顯示取過 pure 的桑基圖
+        st.subheader("Pure RESULT")
+                
+        # 定義 pure Sankey 圖的 source, target 和 value 陣列
+        pure_source = [0, 0] + [1] * len(pure_score_A[1]) + [2] * len(pure_score_B[1])
+        pure_target = [1, 2] + list(range(3, 3 + len(pure_score_A[1]))) + list(range(3 + len(pure_score_A[1]), 3 + len(pure_score_A[1]) + len(pure_score_B[1])))
+        pure_value = [pure_score_A[0], pure_score_B[0]] + [i[-1] for i in pure_score_A[1]] + [i[-1] for i in pure_score_B[1]]
+                
+        # 定義 pure 節點標籤
+        pure_label = [f'PATIENT:{index+1}', 'Positive P', 'Negative N'] + ['P'+str(i[0]) for i in pure_score_A[1]] + ['N'+str(i[0]) for i in pure_score_B[1]]
 
-            pure_node_colors = ['#ECEFF1', '#F8BBD0', '#DCEDC8'] + ['#FFEBEE'] * len(pure_score_A[1]) + ['#F1F8E9'] * len(pure_score_B[1])
+        # Define pure node colors
+        pure_node_colors = ['#ECEFF1', '#F8BBD0', '#DCEDC8'] + ['#FFEBEE'] * len(pure_score_A[1]) + ['#F1F8E9'] * len(pure_score_B[1])
 
-            pure_fig = go.Figure(data=[go.Sankey(node=dict(pad=15, thickness=20, line=dict(color="#37474F", width=0.5), label=pure_label), link=dict(source=pure_source, target=pure_target, value=pure_value))])
+        # Create the pure Sankey diagram
+        pure_fig = go.Figure(data=[go.Sankey(node=dict(pad=15,thickness=20,line=dict(color="#37474F", width=0.5),label=pure_label),link=dict(source=pure_source,target=pure_target,value=pure_value,color=pure_node_colors[1:2] + pure_node_colors[2:3] + ['#FFEBEE'] * len(pure_score_A[1]) + ['#F1F8E9'] * len(pure_score_B[1])))])  # Use colors for links similar to node colors
 
-            st.plotly_chart(pure_fig)
+        # 在 Streamlit 中顯示 pure Sankey 圖
+        st.plotly_chart(pure_fig)
 
     
     
-    # Misdiagnosis Risk Table
+    # Settings Tab
     with tabs[4]:
         # Streamlit Application
-        st.header("Misdiagnosis Risk Table")
-         # 假設 specific_instances_C 包含所有需要的資料
-        data = []
-        for idx, (c, score_A, score_B, pure_score_A, pure_score_B) in enumerate(specific_instances_C):
-            risk_score = max(pure_score_A[0], pure_score_B[0])  # 使用取過 pure 的分數來判斷風險高低
-            if risk_score < 1000:
-                risk_level = "Very Low"
-                status = ""
-            elif risk_score < 2000:
-                risk_level = "Low"
-                status = ""
-            elif risk_score < 3000:
-                risk_level = "High"
-                status = "⚠️"
-            else:
-                risk_level = "Very High"
-                status = "⚠️"
-            data.append({
-                "Status": status,
-                "ID": idx + 1,
-                "NS": pure_score_A[0],  # 使用取過 pure 的分數
-                "PS": pure_score_B[0],  # 使用取過 pure 的分數
-                "Label": ClassT[idx],
-                "Misdiagnosis Risk": risk_level
-            })
+        st.header("Settings Configuration Tool")
+        # Analysis Settings
+        st.subheader("Analysis Parameters")
+       
+        col1, col2 = st.columns(2)
+        with col1:
+            max_threads = st.number_input("Maximum Threads", min_value=1, max_value=16, value=4, key="max_threads")
+            color_theme = st.selectbox("Color Theme", ["Default", "Light", "Dark"], key="color_theme")
+        with col2:
+            advanced_analytics = st.checkbox("Enable Advanced Analytics", value=True, key="advanced_analytics")
+            auto_save = st.checkbox("Auto-save Results", value=True, key="auto_save")
 
-        df_risk = pd.DataFrame(data)
-        styled_df = df_risk.style.apply(highlight_risk, axis=1)
-        st.dataframe(styled_df, use_container_width=False, height=600)
+        # Export Settings
+        st.subheader("Export Configuration")
+        col1, col2 = st.columns(2)
+        with col1:
+            export_format = st.selectbox("Export Format", ["CSV", "Excel", "JSON"], key="export_format")
+            include_metadata = st.checkbox("Include Metadata", value=True, key="include_metadata")
+        with col2:
+            export_directory = st.text_input("Export Directory", value="C:/Results", key="export_directory")
+            auto_export = st.checkbox("Auto-export", value=False, key="auto_export")
+
+        # Save Settings
+        if st.button("Save Settings", key="save_settings"):
+            # Display a success message
+            st.success("Settings saved successfully!")
 
 if __name__ == "__main__":
     main()
