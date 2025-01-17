@@ -542,35 +542,38 @@ def main():
 
     
     
-    # Settings Tab
+    # Misdiagnosis Risk Table
     with tabs[4]:
-        # Streamlit Application
-        st.header("Settings Configuration Tool")
-        # Analysis Settings
-        st.subheader("Analysis Parameters")
-       
-        col1, col2 = st.columns(2)
-        with col1:
-            max_threads = st.number_input("Maximum Threads", min_value=1, max_value=16, value=4, key="max_threads")
-            color_theme = st.selectbox("Color Theme", ["Default", "Light", "Dark"], key="color_theme")
-        with col2:
-            advanced_analytics = st.checkbox("Enable Advanced Analytics", value=True, key="advanced_analytics")
-            auto_save = st.checkbox("Auto-save Results", value=True, key="auto_save")
+        st.subheader("Misdiagnosis Risk Table")
 
-        # Export Settings
-        st.subheader("Export Configuration")
-        col1, col2 = st.columns(2)
-        with col1:
-            export_format = st.selectbox("Export Format", ["CSV", "Excel", "JSON"], key="export_format")
-            include_metadata = st.checkbox("Include Metadata", value=True, key="include_metadata")
-        with col2:
-            export_directory = st.text_input("Export Directory", value="C:/Results", key="export_directory")
-            auto_export = st.checkbox("Auto-export", value=False, key="auto_export")
+        # 假設 specific_instances_C 包含所有需要的資料
+        data = []
+        for idx, (c, score_A, score_B, pure_score_A, pure_score_B) in enumerate(specific_instances_C):
+            risk_score = max(pure_score_A[0], pure_score_B[0])  # 使用取過 pure 的分數來判斷風險高低
+            if risk_score < 1000:
+                risk_level = "Very Low"
+                status = ""
+            elif risk_score < 2000:
+                risk_level = "Low"
+                status = ""
+            elif risk_score < 3000:
+                risk_level = "High"
+                status = "⚠️"
+            else:
+                risk_level = "Very High"
+                status = "⚠️"
+            data.append({
+                "Status": status,
+                "ID": idx + 1,
+                "NS": pure_score_A[0],  # 使用取過 pure 的分數
+                "PS": pure_score_B[0],  # 使用取過 pure 的分數
+                "Label": ClassT[idx],
+                "Misdiagnosis Risk": risk_level
+            })
 
-        # Save Settings
-        if st.button("Save Settings", key="save_settings"):
-            # Display a success message
-            st.success("Settings saved successfully!")
+        df_risk = pd.DataFrame(data)
+        styled_df = df_risk.style.apply(highlight_risk, axis=1)
+        st.dataframe(styled_df, use_container_width=False, height=600)
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()
