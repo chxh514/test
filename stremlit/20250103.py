@@ -473,6 +473,12 @@ def main():
     with tabs[3]:
        if st.session_state.processed_data is not None:
         st.header("Visualization")
+
+        # 初始化 patterns_A, patterns_B, pure_patterns_A, pure_patterns_B 變量
+        patterns_A = find_patterns_updated(st.session_state.processed_data['A'])
+        patterns_B = find_patterns_updated(st.session_state.processed_data['B'])
+        pure_patterns_A = find_pure_patterns(patterns_A, st.session_state.processed_data['B'])
+        pure_patterns_B = find_pure_patterns(patterns_B, st.session_state.processed_data['A'])
         
         # 查找滿足條件的 C 中的實例
         specific_instances_C = find_specific_instances(C, patterns_A, patterns_B, pure_patterns_A, pure_patterns_B)
