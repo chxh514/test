@@ -381,7 +381,7 @@ def main():
         "📊 Data Analysis",
         "🔍 Misdiagnosis Detection",
         "📈 Visualization",
-        "📊 Functions"
+        "📊 Risk Table"
     ])
 
 
@@ -548,19 +548,6 @@ def main():
     
     # Misdiagnosis Risk Table
     with tabs[4]:
-        if st.session_state.processed_data is not None:
-            data = st.session_state.processed_data
-            patterns_A = find_patterns_updated(data['A'])
-            patterns_B = find_patterns_updated(data['B'])
-            pure_patterns_A = find_pure_patterns(patterns_A, data['B'])
-            pure_patterns_B = find_pure_patterns(patterns_B, data['A'])
-            specific_instances_C = find_specific_instances(
-                data['C'], 
-                patterns_A, 
-                patterns_B, 
-                pure_patterns_A, 
-                pure_patterns_B
-    )
         st.subheader("Misdiagnosis Risk Table")
 
         # 假設 specific_instances_C 包含所有需要的資料
