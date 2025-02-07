@@ -55,7 +55,7 @@ class DiagnosisAnalyzer:
         self.data = data
 
     @st.cache_data
-    def find_patterns(self, class_type):
+    def find_patterns(self, _self, class_type):  # 添加下劃線
         patterns = defaultdict(lambda: [0, set()])
         for i in range(len(self.data)):
             for j in range(i, len(self.data)):
@@ -73,7 +73,6 @@ class DiagnosisAnalyzer:
 
 # 查找特定實例的函數
 def find_specific_instances(data_col, patterns_A, patterns_B):
-    # 假設這是一個簡單的例子，您可以根據需要實現具體邏輯
     return [(i, patterns_A, patterns_B) for i in range(len(data_col)) if data_col[i] == 'SomeCondition']
 
 # 交互式視覺化组件
@@ -145,8 +144,8 @@ def main_interface():
         # Data Analysis Tab
         with tabs[0]:
             with st.spinner('正在分析數據...'):
-                pos_patterns = analyzer.find_patterns('positive')
-                neg_patterns = analyzer.find_patterns('negative')
+                pos_patterns = analyzer.find_patterns(analyzer, 'positive')  # 傳遞實例
+                neg_patterns = analyzer.find_patterns(analyzer, 'negative')
 
             st.dataframe(
                 pd.DataFrame.from_dict(pos_patterns, orient='index', columns=['強度', '關聯病例']),
@@ -169,8 +168,8 @@ def main_interface():
                 st.header("Misdiagnosis Detection")
                 
                 data = st.session_state.processed_data
-                patterns_A = analyzer.find_patterns('A')
-                patterns_B = analyzer.find_patterns('B')
+                patterns_A = analyzer.find_patterns(analyzer, 'A')  # 傳遞實例
+                patterns_B = analyzer.find_patterns(analyzer, 'B')
                 
                 specific_instances = []
 
