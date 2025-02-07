@@ -295,7 +295,7 @@ with tabs[2]:
                 c, score_A, score_B, pure_score_A, pure_score_B = specific_instances_C[index]
             else:
                 st.error("Invalid selection. Please choose a valid option.")
-                return
+            return
 
             st.subheader("RESULT")
 
