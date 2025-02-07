@@ -187,11 +187,11 @@ def main_interface():
             score = np.random.randint(1000, 4000)
             level, color = analyzer.get_risk_level(score)
 
-        with st.container():
-            cols = st.columns([1, 3, 2])
-            cols[0].markdown(f"**病例ID**: {idx}")
-            cols[1].markdown(f"**風險等級**: <span style='color:{color};font-weight:bold'>{level}</span>", unsafe_allow_html=True)
-            cols[2].progress(score/4000, text=f"風險指數: {score}/4000")
+                with st.container():
+                    cols = st.columns([1, 3, 2])
+                    cols[0].markdown(f"**病例ID**: {idx}")
+                    cols[1].markdown(f"**風險等級**: <span style='color:{color};font-weight:bold'>{level}</span>", unsafe_allow_html=True)
+                    cols[2].progress(score/4000, text=f"風險指數: {score}/4000")
 
 if __name__ == "__main__":
     main_interface()
