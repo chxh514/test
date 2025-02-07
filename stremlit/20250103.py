@@ -5,196 +5,537 @@ import time
 from sklearn import metrics
 import plotly.graph_objects as go
 from concurrent.futures import ProcessPoolExecutor
-from multiprocessing import cpu_count
-from functools import partial
-from collections import defaultdict
+import plotly.express as px
+from collections import Counter, defaultdict
+from multiprocessing import Pool
+import functools
 
-# 配置页面
+# Performance optimization: Cache heavy computations
+@functools.lru_cache(maxsize=128)
+def calculate_score(instance, pure_sets):
+    score = 0
+    for ps in pure_sets:
+        if set(ps).issubset(set(instance)):
+            score += len(ps)**2
+    return score
+
+# Improved UI Configuration
 st.set_page_config(
-    page_title="智能误诊分析平台",
+    page_title="Medical Diagnosis Analysis Tool",
     page_icon="🏥",
     layout='wide',
     initial_sidebar_state='expanded'
 )
 
-# 自定义CSS样式
+# Enhanced UI Styling
 st.markdown("""
     <style>
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 24px;
+    }
+    .stTabs [data-baseweb="tab"] {
+        height: 50px;
+        padding: 10px 20px;
+        background-color: #f8f9fa;
+        border-radius: 8px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+    .stTabs [aria-selected="true"] {
+        background-color: #4361ee;
+        color: white;
+        box-shadow: 0 4px 6px rgba(67, 97, 238, 0.1);
+    }
+    div[data-testid="stDecoration"] {
+        background-image: linear-gradient(90deg, #4361ee, #3f37c9);
+    }
+    .risk-high {
+        background-color: #ef233c;
+        color: white;
+        padding: 6px;
+        border-radius: 4px;
+    }
+    .risk-medium {
+        background-color: #ffd60a;
+        padding: 6px;
+        border-radius: 4px;
+    }
+    .risk-low {
+        background-color: #52b788;
+        color: white;
+        padding: 6px;
+        border-radius: 4px;
+    }
     .metric-card {
-        background: #f8f9fa;
-        border-radius: 10px;
+        background-color: #f8f9fa;
         padding: 20px;
-        margin: 10px 0;
+        border-radius: 8px;
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
-    .risk-badge {
-        padding: 4px 12px;
-        border-radius: 15px;
-        font-weight: 500;
-    }
-    .high-risk { background: #ffd7d5; color: #d32f2f; }
-    .medium-risk { background: #fff4e5; color: #f57c00; }
-    .low-risk { background: #e8f5e9; color: #388e3c; }
     </style>
 """, unsafe_allow_html=True)
 
-# 缓存数据处理函数
-@st.cache_data
-def load_and_preprocess(uploaded_file):
-    """高效数据加载与预处理"""
-    start = time.time()
+# Optimized data preprocessing
+def preprocess_data(uploaded_file):
+    train_ratio = 0.85
+    test_ratio = 0.15
+    rounding = 2
+    skip_rows = 1
     
-    # 数据加载
-    df = pd.read_csv(uploaded_file, header=None, skiprows=1)
-    df = df.iloc[:5000]  # 示例数据限制
+    start_time = time.time()
     
-    # 数据清洗
-    df.fillna('Missing', inplace=True)
+    # Performance optimization: Use chunks for large files
+    df = pd.read_csv(uploaded_file, sep=',', header=None, skiprows=skip_rows, chunksize=10000)
+    df = pd.concat(df, ignore_index=True)
     
-    # 特征工程
-    numeric_cols = df.select_dtypes(include=np.number).columns
-    df[numeric_cols] = (df[numeric_cols] - df[numeric_cols].mean()) / df[numeric_cols].std()
+    class_col = 9
     
-    # 数据编码
-    categorical = df.select_dtypes(exclude=np.number)
-    encoded = pd.get_dummies(categorical, prefix_sep='::')
-    
-    # 合并数据集
-    processed = pd.concat([df[numeric_cols], encoded], axis=1)
-    
-    print(f"Data processed in {time.time()-start:.2f}s")
-    return processed
-
-# 并行计算优化
-def parallel_score_calc(data_chunk, ref_patterns):
-    """并行评分计算"""
-    return [len(set(item) & ref_patterns) ** 2 for item in data_chunk]
-
-# 核心分析逻辑
-class DiagnosisAnalyzer:
-    def __init__(self, data):
-        self.data = data
-        self.pattern_cache = {}
+    if class_col >= df.shape[1]:
+        st.error(f"Error: Column index {class_col} exceeds DataFrame dimensions ({df.shape[1]})")
+        return None
         
-    @st.cache_data
-    def find_patterns(_self, class_type):
-        """带缓存的模式发现"""
-        patterns = defaultdict(lambda: [0, set()])
-        for i in range(len(_self.data)):
-            for j in range(i, len(_self.data)):
-                intersect = tuple(set(_self.data[i]) & set(_self.data[j]))
-                if intersect:
-                    patterns[intersect][0] += len(intersect)**2
-                    patterns[intersect][1].update([i, j])
-        return dict(patterns)
+    # Vectorized operations for better performance
+    df_processed = df.fillna('NotNumber')
+    class_dict = df_processed.iloc[:, class_col].to_dict()
     
-    def get_risk_level(self, score):
-        """动态风险评级"""
-        if score > 3000: return '高危', '#ff4444'
-        if score > 2000: return '中危', '#ffa500'
-        if score > 1000: return '低危', '#32cd32'
-        return '安全', '#808080'
+    # Parallel processing for Z-score calculation
+    with ProcessPoolExecutor() as executor:
+        processed_columns = list(executor.map(
+            lambda col: process_column(col, rounding),
+            [df_processed.iloc[:, i] for i in range(df_processed.shape[1]-1)]
+        ))
+    
+    end_time = time.time()
+    processing_time = end_time - start_time
+    
+    return process_results(processed_columns, df_processed, class_dict, train_ratio, test_ratio, processing_time)
 
-# 交互式可视化组件
-def render_sankey(analysis_data):
-    """动态生成桑基图"""
-    nodes = ['输入特征', '阳性模式', '阴性模式']
-    links = {
-        'source': [0, 0],
-        'target': [1, 2],
-        'value': [analysis_data['pos_score'], analysis_data['neg_score']]
-    }
+# Performance optimization: Parallel pattern finding
+def find_patterns_parallel(data, chunk_size=1000):
+    with ProcessPoolExecutor() as executor:
+        chunks = [data[i:i + chunk_size] for i in range(0, len(data), chunk_size)]
+        partial_results = list(executor.map(find_patterns_chunk, chunks))
     
-    fig = go.Figure(go.Sankey(
+    return merge_pattern_results(partial_results)
+
+# Main application function with improved UI
+def main():
+    st.markdown("""
+        <div style="background-color: #4361ee; padding: 30px; border-radius: 12px; margin-bottom: 40px">
+            <h1 style="color: white; text-align: center; font-size: 2.5rem">Medical Diagnosis Analysis Tool</h1>
+            <p style="color: white; text-align: center; font-size: 1.2rem">Advanced analytics for medical diagnosis validation</p>
+        </div>
+    """, unsafe_allow_html=True)
+
+# Optimized helper functions
+def process_zscore(data):
+    """Vectorized Z-score calculation"""
+    numeric_mask = pd.to_numeric(data, errors='coerce').notna()
+    result = data.copy()
+    if numeric_mask.any():
+        numeric_data = pd.to_numeric(data[numeric_mask])
+        result[numeric_mask] = (numeric_data - numeric_data.mean()) / numeric_data.std()
+    return result
+
+def create_sankey_visualization(data, title, node_colors=None):
+    """Create optimized Sankey diagram"""
+    if node_colors is None:
+        node_colors = px.colors.qualitative.Set3
+    
+    fig = go.Figure(data=[go.Sankey(
         node=dict(
-            pad=15,
-            thickness=20,
-            label=nodes,
-            color=['#4a90e2', '#50c878', '#ff7373']
+            pad=20,
+            thickness=25,
+            line=dict(color="#475569", width=0.5),
+            label=data['labels'],
+            color=node_colors[:len(data['labels'])],
         ),
         link=dict(
-            source=links['source'],
-            target=links['target'],
-            value=links['value']
+            source=data['source'],
+            target=data['target'],
+            value=data['values'],
+            color=[f"rgba{tuple(int(c * 255) for c in px.colors.hex_to_rgb(color)) + (0.6,)}" 
+                  for color in node_colors[:len(data['values'])]]
         )
-    ))
+    )])
     
     fig.update_layout(
-        title='诊断模式流向分析',
-        font=dict(size=14),
-        height=500
+        title=dict(
+            text=title,
+            x=0.5,
+            xanchor='center',
+            font=dict(size=18, color="#1e293b")
+        ),
+        font=dict(size=12),
+        paper_bgcolor='rgba(0,0,0,0)',
+        plot_bgcolor='rgba(0,0,0,0)',
+        height=600
     )
     return fig
 
-# 主界面布局
-def main_interface():
-    st.title('智能医疗诊断验证系统')
-    st.markdown("---")
+class RiskAnalyzer:
+    """Optimized risk analysis with caching"""
+    def __init__(self):
+        self.cache = {}
     
-    # 文件上传区域
-    with st.expander("📁 数据上传", expanded=True):
-        uploaded_file = st.file_uploader("上传医疗数据（CSV格式）", type="csv")
-        
-    if uploaded_file:
-        data = load_and_preprocess(uploaded_file)
-        analyzer = DiagnosisAnalyzer(data.values)
-        
-        # 实时分析仪表盘
-        st.markdown("## 实时分析面板")
-        col1, col2, col3 = st.columns(3)
-        
-        with col1:
-            with st.container():
-                st.markdown("### 🧪 检测样本数")
-                st.markdown(f'<div class="metric-card">{len(data):,}</div>', unsafe_allow_html=True)
-        
-        with col2:
-            with st.container():
-                st.markdown("### ⚠️ 风险提示")
-                risk_sample = data.sample(1).iloc[0]
-                st.markdown(f'''
-                    <div class="metric-card">
-                        <div>最近识别病例：</div>
-                        <div class="risk-badge high-risk">高危</div>
-                    </div>
-                ''', unsafe_allow_html=True)
-        
-        # 核心分析流程
-        st.markdown("## 深度模式分析")
-        tab_analysis, tab_visual, tab_report = st.tabs(["📊 模式分析", "📈 可视化", "📝 诊断报告"])
-        
-        with tab_analysis:
-            with st.spinner('正在分析数据模式...'):
-                pos_patterns = analyzer.find_patterns('positive')
-                neg_patterns = analyzer.find_patterns('negative')
-                
-            st.dataframe(
-                pd.DataFrame.from_dict(pos_patterns, orient='index', columns=['强度', '关联病例']),
-                height=400,
-                use_container_width=True
-            )
-        
-        with tab_visual:
-            sample_data = data.sample(1).iloc[0].values
-            analysis_result = {
-                'pos_score': len(sample_data) * 150,
-                'neg_score': len(sample_data) * 75
-            }
-            st.plotly_chart(render_sankey(analysis_result), use_container_width=True)
-        
-        with tab_report:
-            risk_samples = data.sample(5)
-            for idx, sample in risk_samples.iterrows():
-                score = np.random.randint(1000, 4000)
-                level, color = analyzer.get_risk_level(score)
-                
-                with st.container(border=True):
-                    cols = st.columns([1,3,2])
-                    cols[0].markdown(f"**病例ID**: {idx}")
-                    cols[1].markdown(f"**风险评级**: <span style='color:{color};font-weight:bold'>{level}</span>", 
-                                   unsafe_allow_html=True)
-                    cols[2].progress(score/4000, text=f"风险指数: {score}/4000")
+    @functools.lru_cache(maxsize=1024)
+    def calculate_risk_score(self, instance_data):
+        score_a = self._get_score(instance_data, 'positive')
+        score_b = self._get_score(instance_data, 'negative')
+        return max(score_a, score_b)
+    
+    def get_risk_level(self, score):
+        if score < 1000:
+            return "Very Low", "#94a3b8"  # Slate 400
+        elif score < 2000:
+            return "Low", "#4ade80"  # Green 400
+        elif score < 3000:
+            return "High", "#fb923c"  # Orange 400
+        return "Very High", "#ef4444"  # Red 500
 
-# 运行主程序
+def create_analysis_dashboard():
+    """Create main analysis dashboard with tabs"""
+    tabs = st.tabs([
+        "📤 Data Upload",
+        "📊 Analysis",
+        "🔍 Risk Detection",
+        "📈 Visualization",
+        "📋 Results"
+    ])
+    
+    with tabs[0]:
+        create_upload_section()
+    
+    with tabs[1]:
+        if 'processed_data' in st.session_state:
+            create_analysis_section()
+    
+    with tabs[2]:
+        if 'processed_data' in st.session_state:
+            create_risk_detection_section()
+    
+    with tabs[3]:
+        if 'processed_data' in st.session_state:
+            create_visualization_section()
+    
+    with tabs[4]:
+        if 'processed_data' in st.session_state:
+            create_results_section()
+
+def create_upload_section():
+    """Enhanced file upload section"""
+    st.markdown("""
+        <div class="upload-container">
+            <h2>Data Upload</h2>
+            <p>Upload your medical diagnosis data file (CSV format)</p>
+        </div>
+    """, unsafe_allow_html=True)
+    
+    uploaded_file = st.file_uploader(
+        "Choose a CSV file",
+        type=["csv"],
+        help="Upload a CSV file containing medical diagnosis data"
+    )
+    
+    if uploaded_file:
+        with st.spinner("Processing data..."):
+            try:
+                result = preprocess_data(uploaded_file)
+                if result:
+                    st.session_state.processed_data = result
+                    st.success("✅ Data processed successfully!")
+                    show_data_preview()
+            except Exception as e:
+                st.error(f"Error processing file: {str(e)}")
+
+def create_analysis_section():
+    """Enhanced analysis section with metrics"""
+    st.header("Data Analysis")
+    
+    data = st.session_state.processed_data
+    
+    # Create metrics row
+    col1, col2, col3, col4 = st.columns(4)
+    
+    with col1:
+        create_metric_card(
+            "Total Records",
+            len(data['records']),
+            "📊"
+        )
+    
+    with col2:
+        create_metric_card(
+            "Risk Cases",
+            len(data['risk_cases']),
+            "⚠️"
+        )
+    
+    with col3:
+        create_metric_card(
+            "Processing Time",
+            f"{data['processing_time']:.2f}s",
+            "⚡"
+        )
+    
+    with col4:
+        create_metric_card(
+            "Accuracy",
+            f"{data['accuracy']:.1f}%",
+            "🎯"
+        )
+    
+    # Create ROC curve
+    st.subheader("ROC Curve Analysis")
+    fig = create_roc_curve(data)
+    st.plotly_chart(fig, use_container_width=True)
+
+def create_metric_card(title, value, icon):
+    """Create a styled metric card"""
+    st.markdown(f"""
+        <div class="metric-card">
+            <div class="metric-icon">{icon}</div>
+            <div class="metric-title">{title}</div>
+            <div class="metric-value">{value}</div>
+        </div>
+    """, unsafe_allow_html=True)
+
+def create_risk_detection_section():
+    """Enhanced risk detection visualization"""
+    st.header("Risk Detection")
+    
+    risk_analyzer = RiskAnalyzer()
+    data = st.session_state.processed_data
+    
+    # Create risk distribution chart
+    risk_distribution = calculate_risk_distribution(data, risk_analyzer)
+    fig = create_risk_distribution_chart(risk_distribution)
+    st.plotly_chart(fig, use_container_width=True)
+    
+    # Show detailed risk analysis
+    show_risk_analysis(data, risk_analyzer)
+
+def create_visualization_section():
+    """Enhanced visualization section with interactive charts"""
+    st.header("Visualization & Analysis")
+    
+    if not st.session_state.processed_data:
+        st.warning("Please upload and process data first.")
+        return
+        
+    data = st.session_state.processed_data
+    
+    # Create visualization options
+    viz_type = st.radio(
+        "Select Visualization Type",
+        ["Sankey Diagram", "Pattern Analysis", "Risk Distribution"],
+        horizontal=True
+    )
+    
+    if viz_type == "Sankey Diagram":
+        create_enhanced_sankey(data)
+    elif viz_type == "Pattern Analysis":
+        create_pattern_analysis(data)
+    else:
+        create_risk_distribution(data)
+
+def create_enhanced_sankey(data):
+    """Create an enhanced Sankey diagram with tooltips and interactivity"""
+    patterns_A = find_patterns_parallel(data['A'])
+    patterns_B = find_patterns_parallel(data['B'])
+    pure_patterns_A = find_pure_patterns(patterns_A, data['B'])
+    pure_patterns_B = find_pure_patterns(patterns_B, data['A'])
+    
+    # Allow user to select specific case
+    case_id = st.selectbox(
+        "Select Case ID",
+        options=list(range(1, len(data['C']) + 1)),
+        format_func=lambda x: f"Case #{x}"
+    )
+    
+    if case_id:
+        idx = case_id - 1
+        instance = data['C'][idx]
+        scores = calculate_instance_scores(
+            instance, 
+            patterns_A, 
+            patterns_B,
+            pure_patterns_A,
+            pure_patterns_B
+        )
+        
+        fig = create_interactive_sankey(scores, f"Analysis Flow for Case #{case_id}")
+        st.plotly_chart(fig, use_container_width=True)
+        
+        # Show detailed scores
+        show_detailed_scores(scores)
+
+def create_pattern_analysis(data):
+    """Create interactive pattern analysis visualization"""
+    st.subheader("Pattern Analysis")
+    
+    # Create tabs for different pattern views
+    pattern_tabs = st.tabs(["Frequency", "Correlation", "Time Series"])
+    
+    with pattern_tabs[0]:
+        create_pattern_frequency_chart(data)
+    
+    with pattern_tabs[1]:
+        create_pattern_correlation_matrix(data)
+    
+    with pattern_tabs[2]:
+        create_pattern_timeline(data)
+
+def create_results_section():
+    """Enhanced results section with filtering and export options"""
+    st.header("Analysis Results")
+    
+    if not st.session_state.processed_data:
+        st.warning("Please upload and process data first.")
+        return
+    
+    data = st.session_state.processed_data
+    risk_analyzer = RiskAnalyzer()
+    
+    # Create filter controls
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        risk_filter = st.multiselect(
+            "Risk Level",
+            ["Very High", "High", "Low", "Very Low"],
+            default=["Very High", "High"]
+        )
+    
+    with col2:
+        score_range = st.slider(
+            "Score Range",
+            min_value=0,
+            max_value=5000,
+            value=(0, 5000)
+        )
+    
+    with col3:
+        sort_by = st.selectbox(
+            "Sort By",
+            ["Risk Level", "Score", "ID"]
+        )
+    
+    # Create and display filtered results
+    filtered_results = create_filtered_results(
+        data,
+        risk_analyzer,
+        risk_filter,
+        score_range,
+        sort_by
+    )
+    
+    # Display results table with styling
+    st.markdown("""
+        <style>
+        .risk-table {
+            font-family: 'Inter', sans-serif;
+        }
+        .risk-table th {
+            background-color: #f8fafc;
+            padding: 12px;
+        }
+        .risk-table td {
+            padding: 8px;
+        }
+        </style>
+    """, unsafe_allow_html=True)
+    
+    st.dataframe(
+        filtered_results.style.apply(style_risk_levels, axis=1),
+        height=500,
+        use_container_width=True
+    )
+    
+    # Export options
+    export_format = st.radio(
+        "Export Format",
+        ["CSV", "Excel", "JSON"],
+        horizontal=True
+    )
+    
+    if st.button("Export Results"):
+        export_results(filtered_results, export_format)
+
+def style_risk_levels(row):
+    """Apply conditional styling to risk levels"""
+    risk_colors = {
+        "Very High": "#fee2e2",  # Red-50
+        "High": "#fff7ed",       # Orange-50
+        "Low": "#f0fdf4",        # Green-50
+        "Very Low": "#f8fafc"    # Slate-50
+    }
+    
+    risk_level = row["Risk Level"]
+    color = risk_colors.get(risk_level, "#ffffff")
+    
+    return [f"background-color: {color}"] * len(row)
+
+def export_results(results_df, format_type):
+    """Export results in selected format"""
+    try:
+        if format_type == "CSV":
+            csv_data = results_df.to_csv(index=False)
+            st.download_button(
+                "Download CSV",
+                csv_data,
+                "diagnosis_analysis.csv",
+                "text/csv"
+            )
+        elif format_type == "Excel":
+            excel_buffer = io.BytesIO()
+            results_df.to_excel(excel_buffer, index=False)
+            st.download_button(
+                "Download Excel",
+                excel_buffer.getvalue(),
+                "diagnosis_analysis.xlsx",
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
+        else:
+            json_data = results_df.to_json(orient="records")
+            st.download_button(
+                "Download JSON",
+                json_data,
+                "diagnosis_analysis.json",
+                "application/json"
+            )
+            
+        st.success("Export completed successfully!")
+    except Exception as e:
+        st.error(f"Export failed: {str(e)}")
+
+def create_filtered_results(data, risk_analyzer, risk_filter, score_range, sort_by):
+    """Create filtered and sorted results dataframe"""
+    results = []
+    
+    for idx, instance in enumerate(data['C']):
+        risk_score = risk_analyzer.calculate_risk_score(tuple(instance))
+        risk_level, _ = risk_analyzer.get_risk_level(risk_score)
+        
+        if (risk_level in risk_filter and 
+            score_range[0] <= risk_score <= score_range[1]):
+            results.append({
+                "ID": idx + 1,
+                "Risk Level": risk_level,
+                "Risk Score": risk_score,
+                "Class": data['ClassT'][idx]
+            })
+    
+    results_df = pd.DataFrame(results)
+    
+    if sort_by == "Risk Level":
+        risk_order = ["Very High", "High", "Low", "Very Low"]
+        results_df["Risk Level"] = pd.Categorical(
+            results_df["Risk Level"],
+            categories=risk_order,
+            ordered=True
+        )
+    
+    return results_df.sort_values(by=sort_by, ascending=sort_by=="ID")
+
 if __name__ == "__main__":
-    main_interface()
+    main()
