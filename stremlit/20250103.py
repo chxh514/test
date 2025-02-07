@@ -381,7 +381,7 @@ def main():
         "📊 Data Analysis",
         "🔍 Misdiagnosis Detection",
         "📈 Visualization",
-        "📊 Functions"
+        "📊 Risk Table"
     ])
 
 
