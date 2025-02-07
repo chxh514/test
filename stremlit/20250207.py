@@ -175,7 +175,33 @@ def main_interface():
             )
         
         with tab_visual:
-            # 初始化 patterns_A, patterns_B, pure_patterns_A, pure_patterns_B 變量
+        data = st.session_state.processed_data
+        patterns_A = find_patterns_updated(data['A'])
+        patterns_B = find_patterns_updated(data['B'])
+        
+        # Initialize specific_instances variable
+        specific_instances = []
+
+        # Assuming you have a function to find specific instances
+        try:
+            specific_instances = find_specific_instances(data['C'], patterns_A, patterns_B)
+        except Exception as e:
+            st.error(f"Error finding specific instances: {str(e)}")
+
+        st.metric("Detected Risk Cases", len(specific_instances))
+        
+        if specific_instances:
+            risk_df = pd.DataFrame([{
+                'ID': idx,
+                'Risk Score': max(instance[3][0], instance[4][0]),
+                'Class': data['ClassT'][idx]
+            } for idx, instance in enumerate(specific_instances)])
+        
+            st.dataframe(risk_df)
+        else:
+            st.warning("No specific instances detected.")
+            
+        # 初始化 patterns_A, patterns_B, pure_patterns_A, pure_patterns_B 變量
         patterns_A = find_patterns_updated(st.session_state.processed_data['A'])
         patterns_B = find_patterns_updated(st.session_state.processed_data['B'])
         pure_patterns_A = find_pure_patterns(patterns_A, st.session_state.processed_data['B'])
