@@ -183,15 +183,32 @@ def main_interface():
             st.plotly_chart(render_sankey(analysis_result), use_container_width=True)
 
         with tab_report:
-            for idx, sample in data.iterrows():
-                score = np.random.randint(1000, 4000)
-                level, color = analyzer.get_risk_level(score)
+    # Create a list to store the data
+    report_data = []
 
-                with st.container():
-                    cols = st.columns([1, 3, 2])
-                    cols[0].markdown(f"**病例ID**: {idx}")
-                    cols[1].markdown(f"**風險等級**: <span style='color:{color};font-weight:bold'>{level}</span>", unsafe_allow_html=True)
-                    cols[2].progress(score/4000, text=f"風險指數: {score}/4000")
+    for idx, sample in data.iterrows():
+        score = np.random.randint(1000, 4000)
+        level, color = analyzer.get_risk_level(score)
+
+        # Append data to the list
+        report_data.append({
+            "病例ID": idx,
+            "風險等級": level,
+            "風險指數": f"{score}/4000"
+        })
+
+        with st.container():
+            cols = st.columns([1, 3, 2])
+            cols[0].markdown(f"**病例ID**: {idx}")
+            cols[1].markdown(f"**風險等級**: <span style='color:{color};font-weight:bold'>{level}</span>", unsafe_allow_html=True)
+            cols[2].progress(score/4000, text=f"風險指數: {score}/4000")
+
+    # Convert the list to a DataFrame
+    report_df = pd.DataFrame(report_data)
+
+    # Add a button to download the DataFrame as a CSV file
+    csv = report_df.to_csv(index=False)
+    st.download_button(label="Download Report as CSV", data=csv, file_name='risk_report.csv', mime='text/csv')
 
 if __name__ == "__main__":
     main_interface()
