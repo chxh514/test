@@ -9,15 +9,15 @@ from multiprocessing import cpu_count
 from functools import partial
 from collections import defaultdict
 
-# 配置页面
+# 配置頁面
 st.set_page_config(
-    page_title="智能误诊分析平台",
+    page_title="Misdiagnosis Detection Tool",
     page_icon="🏥",
     layout='wide',
     initial_sidebar_state='expanded'
 )
 
-# 自定义CSS样式
+# 自定義CSS外觀
 st.markdown("""
     <style>
     .metric-card {
@@ -38,39 +38,39 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 缓存数据处理函数
+# 暫存數據處理函數
 @st.cache_data
 def load_and_preprocess(uploaded_file):
-    """高效数据加载与预处理"""
+    """加快數據加載和預處理"""
     start = time.time()
     
-    # 数据加载
+    # 數據加載
     df = pd.read_csv(uploaded_file, header=None, skiprows=1)
-    df = df.iloc[:5000]  # 示例数据限制
+    df = df.iloc[:5000]  # 示例數據限制
     
-    # 数据清洗
+    # 數據清洗
     df.fillna('Missing', inplace=True)
     
-    # 特征工程
+    # 特徵工程
     numeric_cols = df.select_dtypes(include=np.number).columns
     df[numeric_cols] = (df[numeric_cols] - df[numeric_cols].mean()) / df[numeric_cols].std()
     
-    # 数据编码
+    # 數據編碼
     categorical = df.select_dtypes(exclude=np.number)
     encoded = pd.get_dummies(categorical, prefix_sep='::')
     
-    # 合并数据集
+    # 合併數據集
     processed = pd.concat([df[numeric_cols], encoded], axis=1)
     
     print(f"Data processed in {time.time()-start:.2f}s")
     return processed
 
-# 并行计算优化
+# 並行計算
 def parallel_score_calc(data_chunk, ref_patterns):
-    """并行评分计算"""
+    """并行評分計算"""
     return [len(set(item) & ref_patterns) ** 2 for item in data_chunk]
 
-# 核心分析逻辑
+# 核心分析邏輯
 class DiagnosisAnalyzer:
     def __init__(self, data):
         self.data = data
@@ -78,7 +78,7 @@ class DiagnosisAnalyzer:
         
     @st.cache_data
     def find_patterns(_self, class_type):
-        """带缓存的模式发现"""
+        """帶緩存的模式發現"""
         patterns = defaultdict(lambda: [0, set()])
         for i in range(len(_self.data)):
             for j in range(i, len(_self.data)):
@@ -89,16 +89,16 @@ class DiagnosisAnalyzer:
         return dict(patterns)
     
     def get_risk_level(self, score):
-        """动态风险评级"""
-        if score > 3000: return '高危', '#ff4444'
-        if score > 2000: return '中危', '#ffa500'
-        if score > 1000: return '低危', '#32cd32'
-        return '安全', '#808080'
+        """動態風險評估"""
+        if score > 3000: return 'Very High', '#ff4444'
+        if score > 2000: return 'High', '#ffa500'
+        if score > 1000: return 'Low', '#32cd32'
+        return 'Very Low', '#808080'
 
-# 交互式可视化组件
+# 交互式視覺化组件
 def render_sankey(analysis_data):
-    """动态生成桑基图"""
-    nodes = ['输入特征', '阳性模式', '阴性模式']
+    """動態生成"""
+    nodes = ['輸入特徵', '陽性模式', '陰性模式']
     links = {
         'source': [0, 0],
         'target': [1, 2],
@@ -120,7 +120,7 @@ def render_sankey(analysis_data):
     ))
     
     fig.update_layout(
-        title='诊断模式流向分析',
+        title='診斷模式流向分析',
         font=dict(size=14),
         height=500
     )
@@ -128,48 +128,48 @@ def render_sankey(analysis_data):
 
 # 主界面布局
 def main_interface():
-    st.title('智能医疗诊断验证系统')
+    st.title('Misdiagnosis Detection Tool')
     st.markdown("---")
     
-    # 文件上传区域
-    with st.expander("📁 数据上传", expanded=True):
-        uploaded_file = st.file_uploader("上传医疗数据（CSV格式）", type="csv")
+    # 文件上傳
+    with st.expander("📁 Upload Files", expanded=True):
+        uploaded_file = st.file_uploader("Upload Files（CSV）", type="csv")
         
     if uploaded_file:
         data = load_and_preprocess(uploaded_file)
         analyzer = DiagnosisAnalyzer(data.values)
         
-        # 实时分析仪表盘
-        st.markdown("## 实时分析面板")
+        # 實時分析
+        st.markdown("實時分析面板")
         col1, col2, col3 = st.columns(3)
         
         with col1:
             with st.container():
-                st.markdown("### 🧪 检测样本数")
+                st.markdown("🧪 檢測樣本數")
                 st.markdown(f'<div class="metric-card">{len(data):,}</div>', unsafe_allow_html=True)
         
         with col2:
             with st.container():
-                st.markdown("### ⚠️ 风险提示")
+                st.markdown("⚠️ 風險提示")
                 risk_sample = data.sample(1).iloc[0]
                 st.markdown(f'''
                     <div class="metric-card">
-                        <div>最近识别病例：</div>
+                        <div>最近識別病例：</div>
                         <div class="risk-badge high-risk">高危</div>
                     </div>
                 ''', unsafe_allow_html=True)
         
         # 核心分析流程
         st.markdown("## 深度模式分析")
-        tab_analysis, tab_visual, tab_report = st.tabs(["📊 模式分析", "📈 可视化", "📝 诊断报告"])
+        tab_analysis, tab_visual, tab_report = st.tabs(["📊 Data Analysis", "📈 Visualization", "📝 Risk Table"])
         
         with tab_analysis:
-            with st.spinner('正在分析数据模式...'):
+            with st.spinner('正在分析數據...'):
                 pos_patterns = analyzer.find_patterns('positive')
                 neg_patterns = analyzer.find_patterns('negative')
                 
             st.dataframe(
-                pd.DataFrame.from_dict(pos_patterns, orient='index', columns=['强度', '关联病例']),
+                pd.DataFrame.from_dict(pos_patterns, orient='index', columns=['强度', '關聯病例']),
                 height=400,
                 use_container_width=True
             )
@@ -191,10 +191,10 @@ def main_interface():
                 with st.container(border=True):
                     cols = st.columns([1,3,2])
                     cols[0].markdown(f"**病例ID**: {idx}")
-                    cols[1].markdown(f"**风险评级**: <span style='color:{color};font-weight:bold'>{level}</span>", 
+                    cols[1].markdown(f"**風險等級**: <span style='color:{color};font-weight:bold'>{level}</span>", 
                                    unsafe_allow_html=True)
-                    cols[2].progress(score/4000, text=f"风险指数: {score}/4000")
+                    cols[2].progress(score/4000, text=f"風險指數: {score}/4000")
 
-# 运行主程序
+
 if __name__ == "__main__":
     main_interface()
