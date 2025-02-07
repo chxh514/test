@@ -184,7 +184,7 @@ def main_interface():
 
         with tab_report:
     # Create a list to store the data
-    report_data = []
+            report_data = []
 
     for idx, sample in data.iterrows():
         score = np.random.randint(1000, 4000)
