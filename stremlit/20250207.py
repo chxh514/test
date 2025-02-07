@@ -184,8 +184,8 @@ def main_interface():
 
        with tab_report:
             for idx, sample in data.iterrows():
-            score = np.random.randint(1000, 4000)
-            level, color = analyzer.get_risk_level(score)
+                score = np.random.randint(1000, 4000)
+                level, color = analyzer.get_risk_level(score)
 
                 with st.container():
                     cols = st.columns([1, 3, 2])
