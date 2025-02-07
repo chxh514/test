@@ -182,19 +182,16 @@ def main_interface():
             }
             st.plotly_chart(render_sankey(analysis_result), use_container_width=True)
 
-        with tab_report:
-            risk_samples = data.sample(5)
-            for idx, sample in risk_samples.iterrows():
-                score = np.random.randint(1000, 4000)
-                level, color = analyzer.get_risk_level(score)
+       with tab_report:
+        for idx, sample in data.iterrows():
+        score = np.random.randint(1000, 4000)
+        level, color = analyzer.get_risk_level(score)
 
-                with st.container(border=True):
-                    cols = st.columns([1,3,2])
-                    cols[0].markdown(f"**病例ID**: {idx}")
-                    cols[1].markdown(f"**風險等級**: <span style='color:{color};font-weight:bold'>{level}</span>", 
-                                   unsafe_allow_html=True)
-                    cols[2].progress(score/4000, text=f"風險指數: {score}/4000")
-
+        with st.container():
+            cols = st.columns([1, 3, 2])
+            cols[0].markdown(f"**病例ID**: {idx}")
+            cols[1].markdown(f"**風險等級**: <span style='color:{color};font-weight:bold'>{level}</span>", unsafe_allow_html=True)
+            cols[2].progress(score/4000, text=f"風險指數: {score}/4000")
 
 if __name__ == "__main__":
     main_interface()
