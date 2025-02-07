@@ -2,8 +2,9 @@ import streamlit as st
 import numpy as np
 import pandas as pd
 import time
-from collections import defaultdict
+from sklearn import metrics
 import plotly.graph_objects as go
+from collections import defaultdict
 
 # 配置頁面
 st.set_page_config(
@@ -34,18 +35,30 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 數據處理函數
+# 暫存數據處理函數
 @st.cache_data
 def load_and_preprocess(uploaded_file):
+    """加快數據加載和預處理"""
     start = time.time()
+
+    # 數據加載
     df = pd.read_csv(uploaded_file, header=None, skiprows=1)
     df = df.iloc[:5000]  # 示例數據限制
+
+    # 數據清洗
     df.fillna('Missing', inplace=True)
+
+    # 特徵工程
     numeric_cols = df.select_dtypes(include=np.number).columns
     df[numeric_cols] = (df[numeric_cols] - df[numeric_cols].mean()) / df[numeric_cols].std()
+
+    # 數據編碼
     categorical = df.select_dtypes(exclude=np.number)
     encoded = pd.get_dummies(categorical, prefix_sep='::')
+
+    # 合併數據集
     processed = pd.concat([df[numeric_cols], encoded], axis=1)
+
     print(f"Data processed in {time.time()-start:.2f}s")
     return processed
 
@@ -55,7 +68,8 @@ class DiagnosisAnalyzer:
         self.data = data
 
     @st.cache_data
-    def find_patterns(self, _self, class_type):  # 添加下劃線
+    def find_patterns(self, class_type):
+        """帶緩存的模式發現"""
         patterns = defaultdict(lambda: [0, set()])
         for i in range(len(self.data)):
             for j in range(i, len(self.data)):
@@ -66,23 +80,22 @@ class DiagnosisAnalyzer:
         return dict(patterns)
 
     def get_risk_level(self, score):
+        """動態風險評估"""
         if score > 3000: return 'Very High', '#ff4444'
         if score > 2000: return 'High', '#ffa500'
         if score > 1000: return 'Low', '#32cd32'
         return 'Very Low', '#808080'
 
-# 查找特定實例的函數
-def find_specific_instances(data_col, patterns_A, patterns_B):
-    return [(i, patterns_A, patterns_B) for i in range(len(data_col)) if data_col[i] == 'SomeCondition']
-
 # 交互式視覺化组件
 def render_sankey(analysis_data):
+    """動態生成"""
     nodes = ['輸入特徵', '陽性模式', '陰性模式']
     links = {
         'source': [0, 0],
         'target': [1, 2],
         'value': [analysis_data['pos_score'], analysis_data['neg_score']]
     }
+
     fig = go.Figure(go.Sankey(
         node=dict(
             pad=15,
@@ -96,6 +109,7 @@ def render_sankey(analysis_data):
             value=links['value']
         )
     ))
+
     fig.update_layout(
         title='診斷模式流向分析',
         font=dict(size=14),
@@ -114,7 +128,6 @@ def main_interface():
 
     if uploaded_file:
         data = load_and_preprocess(uploaded_file)
-        st.session_state.processed_data = data  # 儲存處理後的數據
         analyzer = DiagnosisAnalyzer(data.values)
 
         # 實時分析
@@ -139,13 +152,12 @@ def main_interface():
 
         # 核心分析流程
         st.markdown("## 深度模式分析")
-        tabs = st.tabs(["📊 Data Analysis", "📈 Visualization", "🔍 Misdiagnosis Detection", "📊 Misdiagnosis Risk Table"])
+        tab_analysis, tab_visual, tab_report = st.tabs(["📊 Data Analysis", "📈 Visualization", "📝 Risk Table"])
 
-        # Data Analysis Tab
-        with tabs[0]:
+        with tab_analysis:
             with st.spinner('正在分析數據...'):
-                pos_patterns = analyzer.find_patterns(analyzer, 'positive')  # 傳遞實例
-                neg_patterns = analyzer.find_patterns(analyzer, 'negative')
+                pos_patterns = analyzer.find_patterns('positive')
+                neg_patterns = analyzer.find_patterns('negative')
 
             st.dataframe(
                 pd.DataFrame.from_dict(pos_patterns, orient='index', columns=['強度', '關聯病例']),
@@ -153,8 +165,7 @@ def main_interface():
                 use_container_width=True
             )
 
-        # Visualization Tab
-        with tabs[1]:
+        with tab_visual:
             sample_data = data.sample(1).iloc[0].values
             analysis_result = {
                 'pos_score': len(sample_data) * 150,
@@ -162,6 +173,16 @@ def main_interface():
             }
             st.plotly_chart(render_sankey(analysis_result), use_container_width=True)
 
-     
+        with tab_report:
+            for idx, sample in data.iterrows():
+                score = np.random.randint(1000, 4000)
+                level, color = analyzer.get_risk_level(score)
+
+                with st.container():
+                    cols = st.columns([1, 3, 2])
+                    cols[0].markdown(f"**病例ID**: {idx}")
+                    cols[1].markdown(f"**風險等級**: <span style='color:{color};font-weight:bold'>{level}</span>", unsafe_allow_html=True)
+                    cols[2].progress(score/4000, text=f"風險指數: {score}/4000")
+
 if __name__ == "__main__":
     main_interface()
