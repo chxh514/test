@@ -162,64 +162,6 @@ def main_interface():
             }
             st.plotly_chart(render_sankey(analysis_result), use_container_width=True)
 
-        # Misdiagnosis Detection Tab
-        with tabs[2]:
-            if st.session_state.get('processed_data') is not None:
-                st.header("Misdiagnosis Detection")
-                
-                data = st.session_state.processed_data
-                patterns_A = analyzer.find_patterns(analyzer, 'A')  # 傳遞實例
-                patterns_B = analyzer.find_patterns(analyzer, 'B')
-                
-                specific_instances = []
-
-                try:
-                    specific_instances = find_specific_instances(data['C'], patterns_A, patterns_B)
-                except Exception as e:
-                    st.error(f"Error finding specific instances: {str(e)}")
-
-                st.metric("Detected Risk Cases", len(specific_instances))
-                
-                if specific_instances:
-                    risk_df = pd.DataFrame([{
-                        'ID': idx,
-                        'Risk Score': max(instance[1][0], instance[2][0]),
-                        'Class': data['ClassT'][idx]
-                    } for idx, instance in enumerate(specific_instances)])
-                
-                    st.dataframe(risk_df)
-                else:
-                    st.warning("No specific instances detected.")
-
-        # Misdiagnosis Risk Table Tab
-        with tabs[3]:
-            st.subheader("Misdiagnosis Risk Table")
-            data = []
-            for idx, (c, score_A, score_B) in enumerate(specific_instances):
-                risk_score = max(score_A[0], score_B[0])
-                if risk_score < 1000:
-                    risk_level = "Very Low"
-                    status = ""
-                elif risk_score < 2000:
-                    risk_level = "Low"
-                    status = ""
-                elif risk_score < 3000:
-                    risk_level = "High"
-                    status = "⚠️"
-                else:
-                    risk_level = "Very High"
-                    status = "⚠️"
-                data.append({
-                    "Status": status,
-                    "ID": idx + 1,
-                    "NS": score_A[0],
-                    "PS": score_B[0],
-                    "Label": data['ClassT'][idx],
-                    "Misdiagnosis Risk": risk_level
-                })
-
-            df_risk = pd.DataFrame(data)
-            st.dataframe(df_risk, use_container_width=False, height=600)
-
+     
 if __name__ == "__main__":
     main_interface()
