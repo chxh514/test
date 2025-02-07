@@ -4,6 +4,9 @@ import pandas as pd
 import time
 from sklearn import metrics
 import plotly.graph_objects as go
+from concurrent.futures import ProcessPoolExecutor
+from multiprocessing import cpu_count
+from functools import partial
 from collections import defaultdict
 
 # 配置頁面
@@ -62,18 +65,24 @@ def load_and_preprocess(uploaded_file):
     print(f"Data processed in {time.time()-start:.2f}s")
     return processed
 
+# 並行計算
+def parallel_score_calc(data_chunk, ref_patterns):
+    """并行評分計算"""
+    return [len(set(item) & ref_patterns) ** 2 for item in data_chunk]
+
 # 核心分析邏輯
 class DiagnosisAnalyzer:
     def __init__(self, data):
         self.data = data
+        self.pattern_cache = {}
 
     @st.cache_data
-    def find_patterns(self, class_type):
+    def find_patterns(_self, class_type):
         """帶緩存的模式發現"""
         patterns = defaultdict(lambda: [0, set()])
-        for i in range(len(self.data)):
-            for j in range(i, len(self.data)):
-                intersect = tuple(set(self.data[i]) & set(self.data[j]))
+        for i in range(len(_self.data)):
+            for j in range(i, len(_self.data)):
+                intersect = tuple(set(_self.data[i]) & set(_self.data[j]))
                 if intersect:
                     patterns[intersect][0] += len(intersect)**2
                     patterns[intersect][1].update([i, j])
@@ -160,7 +169,7 @@ def main_interface():
                 neg_patterns = analyzer.find_patterns('negative')
 
             st.dataframe(
-                pd.DataFrame.from_dict(pos_patterns, orient='index', columns=['強度', '關聯病例']),
+                pd.DataFrame.from_dict(pos_patterns, orient='index', columns=['强度', '關聯病例']),
                 height=400,
                 use_container_width=True
             )
