@@ -149,7 +149,7 @@ def main_interface():
                 st.markdown(f'<div class="metric-card">{len(data):,}</div>', unsafe_allow_html=True)
         
         with col2:
-            with st.container(height=200):
+            with st.container():
                 st.markdown("### ⚠️ 风险提示")
                 risk_sample = data.sample(1).iloc[0]
                 st.markdown(f'''
