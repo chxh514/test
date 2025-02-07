@@ -62,7 +62,7 @@ st.markdown("""
 
 # Convert tuples to boolean arrays
 def tuples_to_boolean_arrays(tuples, max_value):
-return np.array([np.isin(range(max_value), t) for t in tuples])
+   return np.array([np.isin(range(max_value), t) for t in tuples])
 
 # Function to calculate score
 def calculate_score(instance, pure_sets):
