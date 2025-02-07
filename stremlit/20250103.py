@@ -144,7 +144,7 @@ def main_interface():
         col1, col2, col3 = st.columns(3)
         
         with col1:
-            with st.container(height=200):
+            with st.container():
                 st.markdown("### 🧪 检测样本数")
                 st.markdown(f'<div class="metric-card">{len(data):,}</div>', unsafe_allow_html=True)
         
