@@ -228,26 +228,37 @@ def main():
             fig.update_layout(title='ROC Curve Analysis')
             st.plotly_chart(fig)
 
-    # Misdiagnosis Detection Tab
-    with tabs[2]:
-        if st.session_state.processed_data is not None:
-            st.header("Misdiagnosis Detection")
-            
-            data = st.session_state.processed_data
-            patterns_A = find_patterns_updated(data['A'])
-            patterns_B = find_patterns_updated(data['B'])
-            
+   # Misdiagnosis Detection Tab
+with tabs[2]:
+    if st.session_state.processed_data is not None:
+        st.header("Misdiagnosis Detection")
+        
+        data = st.session_state.processed_data
+        patterns_A = find_patterns_updated(data['A'])
+        patterns_B = find_patterns_updated(data['B'])
+        
+        # Initialize specific_instances variable
+        specific_instances = []
+
+        # Assuming you have a function to find specific instances
+        try:
             specific_instances = find_specific_instances(data['C'], patterns_A, patterns_B)
-            
-            st.metric("Detected Risk Cases", len(specific_instances))
-            
+        except Exception as e:
+            st.error(f"Error finding specific instances: {str(e)}")
+
+        st.metric("Detected Risk Cases", len(specific_instances))
+        
+        if specific_instances:
             risk_df = pd.DataFrame([{
                 'ID': idx,
                 'Risk Score': max(instance[3][0], instance[4][0]),
                 'Class': data['ClassT'][idx]
             } for idx, instance in enumerate(specific_instances)])
-            
+        
             st.dataframe(risk_df)
+        else:
+            st.warning("No specific instances detected.")
+
     # Visualization Tab
     with tabs[3]:
        if st.session_state.processed_data is not None:
