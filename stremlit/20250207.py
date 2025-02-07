@@ -2,12 +2,8 @@ import streamlit as st
 import numpy as np
 import pandas as pd
 import time
-from sklearn import metrics
-import plotly.graph_objects as go
-from concurrent.futures import ProcessPoolExecutor
-from multiprocessing import cpu_count
-from functools import partial
 from collections import defaultdict
+import plotly.graph_objects as go
 
 # 配置頁面
 st.set_page_config(
@@ -38,73 +34,56 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 暫存數據處理函數
+# 數據處理函數
 @st.cache_data
 def load_and_preprocess(uploaded_file):
-    """加快數據加載和預處理"""
     start = time.time()
-
-    # 數據加載
     df = pd.read_csv(uploaded_file, header=None, skiprows=1)
     df = df.iloc[:5000]  # 示例數據限制
-
-    # 數據清洗
     df.fillna('Missing', inplace=True)
-
-    # 特徵工程
     numeric_cols = df.select_dtypes(include=np.number).columns
     df[numeric_cols] = (df[numeric_cols] - df[numeric_cols].mean()) / df[numeric_cols].std()
-
-    # 數據編碼
     categorical = df.select_dtypes(exclude=np.number)
     encoded = pd.get_dummies(categorical, prefix_sep='::')
-
-    # 合併數據集
     processed = pd.concat([df[numeric_cols], encoded], axis=1)
-
     print(f"Data processed in {time.time()-start:.2f}s")
     return processed
-
-# 並行計算
-def parallel_score_calc(data_chunk, ref_patterns):
-    """并行評分計算"""
-    return [len(set(item) & ref_patterns) ** 2 for item in data_chunk]
 
 # 核心分析邏輯
 class DiagnosisAnalyzer:
     def __init__(self, data):
         self.data = data
-        self.pattern_cache = {}
 
     @st.cache_data
-    def find_patterns(_self, class_type):
-        """帶緩存的模式發現"""
+    def find_patterns(self, class_type):
         patterns = defaultdict(lambda: [0, set()])
-        for i in range(len(_self.data)):
-            for j in range(i, len(_self.data)):
-                intersect = tuple(set(_self.data[i]) & set(_self.data[j]))
+        for i in range(len(self.data)):
+            for j in range(i, len(self.data)):
+                intersect = tuple(set(self.data[i]) & set(self.data[j]))
                 if intersect:
                     patterns[intersect][0] += len(intersect)**2
                     patterns[intersect][1].update([i, j])
         return dict(patterns)
 
     def get_risk_level(self, score):
-        """動態風險評估"""
         if score > 3000: return 'Very High', '#ff4444'
         if score > 2000: return 'High', '#ffa500'
         if score > 1000: return 'Low', '#32cd32'
         return 'Very Low', '#808080'
 
+# 查找特定實例的函數
+def find_specific_instances(data_col, patterns_A, patterns_B):
+    # 假設這是一個簡單的例子，您可以根據需要實現具體邏輯
+    return [(i, patterns_A, patterns_B) for i in range(len(data_col)) if data_col[i] == 'SomeCondition']
+
 # 交互式視覺化组件
 def render_sankey(analysis_data):
-    """動態生成"""
     nodes = ['輸入特徵', '陽性模式', '陰性模式']
     links = {
         'source': [0, 0],
         'target': [1, 2],
         'value': [analysis_data['pos_score'], analysis_data['neg_score']]
     }
-
     fig = go.Figure(go.Sankey(
         node=dict(
             pad=15,
@@ -118,7 +97,6 @@ def render_sankey(analysis_data):
             value=links['value']
         )
     ))
-
     fig.update_layout(
         title='診斷模式流向分析',
         font=dict(size=14),
@@ -137,6 +115,7 @@ def main_interface():
 
     if uploaded_file:
         data = load_and_preprocess(uploaded_file)
+        st.session_state.processed_data = data  # 儲存處理後的數據
         analyzer = DiagnosisAnalyzer(data.values)
 
         # 實時分析
@@ -161,20 +140,22 @@ def main_interface():
 
         # 核心分析流程
         st.markdown("## 深度模式分析")
-        tab_analysis, tab_visual, tab_report = st.tabs(["📊 Data Analysis", "📈 Visualization", "📝 Risk Table"])
+        tabs = st.tabs(["📊 Data Analysis", "📈 Visualization", "🔍 Misdiagnosis Detection", "📊 Misdiagnosis Risk Table"])
 
-        with tab_analysis:
+        # Data Analysis Tab
+        with tabs[0]:
             with st.spinner('正在分析數據...'):
                 pos_patterns = analyzer.find_patterns('positive')
                 neg_patterns = analyzer.find_patterns('negative')
 
             st.dataframe(
-                pd.DataFrame.from_dict(pos_patterns, orient='index', columns=['强度', '關聯病例']),
+                pd.DataFrame.from_dict(pos_patterns, orient='index', columns=['強度', '關聯病例']),
                 height=400,
                 use_container_width=True
             )
 
-        with tab_visual:
+        # Visualization Tab
+        with tabs[1]:
             sample_data = data.sample(1).iloc[0].values
             analysis_result = {
                 'pos_score': len(sample_data) * 150,
@@ -182,16 +163,64 @@ def main_interface():
             }
             st.plotly_chart(render_sankey(analysis_result), use_container_width=True)
 
-        with tab_report:
-            for idx, sample in data.iterrows():
-                score = np.random.randint(1000, 4000)
-                level, color = analyzer.get_risk_level(score)
+        # Misdiagnosis Detection Tab
+        with tabs[2]:
+            if st.session_state.get('processed_data') is not None:
+                st.header("Misdiagnosis Detection")
+                
+                data = st.session_state.processed_data
+                patterns_A = analyzer.find_patterns('A')
+                patterns_B = analyzer.find_patterns('B')
+                
+                specific_instances = []
 
-                with st.container():
-                    cols = st.columns([1, 3, 2])
-                    cols[0].markdown(f"**病例ID**: {idx}")
-                    cols[1].markdown(f"**風險等級**: <span style='color:{color};font-weight:bold'>{level}</span>", unsafe_allow_html=True)
-                    cols[2].progress(score/4000, text=f"風險指數: {score}/4000")
+                try:
+                    specific_instances = find_specific_instances(data['C'], patterns_A, patterns_B)
+                except Exception as e:
+                    st.error(f"Error finding specific instances: {str(e)}")
+
+                st.metric("Detected Risk Cases", len(specific_instances))
+                
+                if specific_instances:
+                    risk_df = pd.DataFrame([{
+                        'ID': idx,
+                        'Risk Score': max(instance[1][0], instance[2][0]),
+                        'Class': data['ClassT'][idx]
+                    } for idx, instance in enumerate(specific_instances)])
+                
+                    st.dataframe(risk_df)
+                else:
+                    st.warning("No specific instances detected.")
+
+        # Misdiagnosis Risk Table Tab
+        with tabs[3]:
+            st.subheader("Misdiagnosis Risk Table")
+            data = []
+            for idx, (c, score_A, score_B) in enumerate(specific_instances):
+                risk_score = max(score_A[0], score_B[0])
+                if risk_score < 1000:
+                    risk_level = "Very Low"
+                    status = ""
+                elif risk_score < 2000:
+                    risk_level = "Low"
+                    status = ""
+                elif risk_score < 3000:
+                    risk_level = "High"
+                    status = "⚠️"
+                else:
+                    risk_level = "Very High"
+                    status = "⚠️"
+                data.append({
+                    "Status": status,
+                    "ID": idx + 1,
+                    "NS": score_A[0],
+                    "PS": score_B[0],
+                    "Label": data['ClassT'][idx],
+                    "Misdiagnosis Risk": risk_level
+                })
+
+            df_risk = pd.DataFrame(data)
+            st.dataframe(df_risk, use_container_width=False, height=600)
 
 if __name__ == "__main__":
     main_interface()
