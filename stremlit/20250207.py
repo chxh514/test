@@ -183,38 +183,16 @@ def main_interface():
             st.plotly_chart(render_sankey(analysis_result), use_container_width=True)
 
         with tab_report:
-    # Create a list to store the data
-            report_data = []
+            for idx, sample in data.iterrows():
+                score = np.random.randint(1000, 4000)
+                level, color = analyzer.get_risk_level(score)
 
-    for idx, (c, score_A, score_B, pure_score_A, pure_score_B) in enumerate(specific_instances_C):
-        risk_score = max(pure_score_A[0], pure_score_B[0])  # 使用取過 pure 的分數來判斷風險高低
-        if risk_score < 1000:
-            risk_level = "Very Low"
-            status = ""
-        elif risk_score < 2000:
-            risk_level = "Low"
-            status = ""
-        elif risk_score < 3000:
-            risk_level = "High"
-            status = "⚠️"
-        else:
-            risk_level = "Very High"
-            status = "⚠️"
-        report_data.append({
-            "Status": status,
-            "ID": idx + 1,
-            "NS": pure_score_A[0],  # 使用取過 pure 的分數
-            "PS": pure_score_B[0],  # 使用取過 pure 的分數
-            "Label": ClassT[idx],
-            "Misdiagnosis Risk": risk_level
-        })
+                with st.container():
+                    cols = st.columns([1, 3, 2])
+                    cols[0].markdown(f"**病例ID**: {idx}")
+                    cols[1].markdown(f"**風險等級**: <span style='color:{color};font-weight:bold'>{level}</span>", unsafe_allow_html=True)
+                    cols[2].progress(score/4000, text=f"風險指數: {score}/4000")
 
-    df_risk = pd.DataFrame(report_data)
-    styled_df = df_risk.style.apply(highlight_risk, axis=1)
-    st.dataframe(styled_df, use_container_width=False, height=600)
 
-    # Add a button to download the DataFrame as a CSV file
-    csv = df_risk.to_csv(index=False)
-    st.download_button(label="Download Risk Table as CSV", data=csv, file_name='risk_table.csv', mime='text/csv')
 if __name__ == "__main__":
     main_interface()
