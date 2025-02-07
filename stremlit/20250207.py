@@ -182,7 +182,7 @@ def main_interface():
             }
             st.plotly_chart(render_sankey(analysis_result), use_container_width=True)
 
-       with tab_report:
+        with tab_report:
             for idx, sample in data.iterrows():
                 score = np.random.randint(1000, 4000)
                 level, color = analyzer.get_risk_level(score)
