@@ -155,7 +155,7 @@ def main_interface():
             # 計算四個風險程度的人數
             risk_counts = {'Very High': 0, 'High': 0, 'Low': 0, 'Very Low': 0}
             for idx, sample in data.iterrows():
-                score = np.random.randint(1000, 4000)  # 示例分数计算
+                score = np.random.randint(1000, 4000)  # 示例分數計算
                 level, _ = analyzer.get_risk_level(score)
                 risk_counts[level] += 1
         
@@ -163,10 +163,10 @@ def main_interface():
             st.markdown(f'''
                 <div class="metric-card">
                     <div>風險分佈：</div>
-                    <div class="risk-badge high-risk">高危: {risk_counts['Very High']}</div>
-                    <div class="risk-badge medium-risk">中危: {risk_counts['High']}</div>
-                    <div class="risk-badge low-risk">低危: {risk_counts['Low']}</div>
-                    <div class="risk-badge very-low-risk">極低危: {risk_counts['Very Low']}</div>
+                    <div class="risk-badge high-risk">Very High: {risk_counts['Very High']}</div>
+                    <div class="risk-badge medium-risk">High: {risk_counts['High']}</div>
+                    <div class="risk-badge low-risk">Low: {risk_counts['Low']}</div>
+                    <div class="risk-badge very-low-risk">Very Low: {risk_counts['Very Low']}</div>
                 </div>
             ''', unsafe_allow_html=True)
 
