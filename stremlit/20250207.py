@@ -398,6 +398,10 @@ def main_interface():
                 else:
                     st.success("当前没有需要紧急处理的病例")
 
+        except Exception as e:
+            st.error(f"发生错误: {str(e)}")
+            st.warning("请检查输入数据格式是否正确，或者刷新页面重试。")
+
 def run_analysis():
     """运行主分析流程"""
     try:
