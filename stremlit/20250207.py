@@ -68,10 +68,16 @@ def find_patterns_updated(data):
     patterns = defaultdict(lambda: [0, set()])
     for i in range(len(data)):
         for j in range(i, len(data)):
-            intersect = tuple(set(data[i]) & set(data[j]))
-            if intersect:
-                patterns[intersect][0] += len(intersect)**2
-                patterns[intersect][1].update([i, j])
+            # 修改：使用列表而不是集合来保持维度一致性
+            common_features = []
+            for idx, (val_i, val_j) in enumerate(zip(data[i], data[j])):
+                if val_i == val_j and val_i != 0:  # 假设0为无特征值
+                    common_features.append(idx)
+            
+            if common_features:
+                pattern = tuple(common_features)
+                patterns[pattern][0] += len(common_features)**2
+                patterns[pattern][1].update([i, j])
     return dict(patterns)
 
 def find_pure_patterns(patterns, opposite_data):
@@ -80,22 +86,36 @@ def find_pure_patterns(patterns, opposite_data):
     for pattern, (score, cases) in patterns.items():
         pure = True
         for case in cases:
-            if pattern in opposite_data[case]:
-                pure = False
-                break
+            if case < len(opposite_data):  # 添加边界检查
+                feature_values = [opposite_data[case][i] if i < len(opposite_data[case]) else 0 for i in pattern]
+                if any(v != 0 for v in feature_values):
+                    pure = False
+                    break
         if pure:
             pure_patterns[pattern] = (score, cases)
     return pure_patterns
 
 def find_specific_instances(C, patterns_A, patterns_B, pure_A, pure_B):
-    """识别特定实例"""
+    """识别特定实例，修改后的版本"""
     results = []
     for idx, c in enumerate(C):
-        score_A = max((len(set(c)&set(p))**2 for p in patterns_A), default=0)
-        score_B = max((len(set(c)&set(p))**2 for p in patterns_B), default=0)
-        pure_score_A = max((len(set(c)&set(p))**2 for p in pure_A), default=0)
-        pure_score_B = max((len(set(c)&set(p))**2 for p in pure_B), default=0)
+        # 修改：确保维度匹配
+        def calculate_pattern_score(pattern, instance):
+            if not pattern:  # 如果模式为空
+                return 0
+            matches = sum(1 for i in pattern if i < len(instance) and instance[i] != 0)
+            return matches**2
+
+        # 计算常规模式分数
+        score_A = max((calculate_pattern_score(p, c) for p in patterns_A.keys()), default=0)
+        score_B = max((calculate_pattern_score(p, c) for p in patterns_B.keys()), default=0)
+        
+        # 计算纯净模式分数
+        pure_score_A = max((calculate_pattern_score(p, c) for p in pure_A.keys()), default=0)
+        pure_score_B = max((calculate_pattern_score(p, c) for p in pure_B.keys()), default=0)
+        
         results.append((c, score_A, score_B, pure_score_A, pure_score_B))
+    
     return sorted(results, key=lambda x: x[3]+x[4], reverse=True)
 
 def parallel_score_calc(data_chunk, ref_patterns):
@@ -107,18 +127,12 @@ class DiagnosisAnalyzer:
         self.data = data
         self.patterns_cache = {}
         self.pure_patterns_cache = {}
+        self.feature_dim = data.shape[1] if len(data.shape) > 1 else 1
 
     @st.cache_data
     def find_patterns(_self, class_type):
         """带缓存的模式发现"""
-        patterns = defaultdict(lambda: [0, set()])
-        for i in range(len(_self.data)):
-            for j in range(i, len(_self.data)):
-                intersect = tuple(set(_self.data[i]) & set(_self.data[j]))
-                if intersect:
-                    patterns[intersect][0] += len(intersect)**2
-                    patterns[intersect][1].update([i, j])
-        return dict(patterns)
+        return find_patterns_updated(_self.data)
 
     def get_risk_level(self, score):
         """动态风险评估"""
@@ -130,16 +144,26 @@ class DiagnosisAnalyzer:
     def get_advanced_patterns(self):
         """获取高级模式分析结果"""
         if not self.patterns_cache:
-            self.patterns_cache['A'] = find_patterns_updated(self.data[:len(self.data)//2])
-            self.patterns_cache['B'] = find_patterns_updated(self.data[len(self.data)//2:])
+            mid_point = len(self.data)//2
+            data_A = self.data[:mid_point]
+            data_B = self.data[mid_point:]
+            
+            if len(data_A.shape) != 2 or len(data_B.shape) != 2:
+                raise ValueError("数据需要是2维数组，形如 (样本数, 特征数)")
+            
+            if data_A.shape[1] != data_B.shape[1]:
+                raise ValueError(f"特征维度不匹配: A={data_A.shape[1]}, B={data_B.shape[1]}")
+            
+            self.patterns_cache['A'] = find_patterns_updated(data_A)
+            self.patterns_cache['B'] = find_patterns_updated(data_B)
             
             self.pure_patterns_cache['A'] = find_pure_patterns(
                 self.patterns_cache['A'], 
-                self.data[len(self.data)//2:]
+                data_B
             )
             self.pure_patterns_cache['B'] = find_pure_patterns(
                 self.patterns_cache['B'],
-                self.data[:len(self.data)//2]
+                data_A
             )
         return self.patterns_cache, self.pure_patterns_cache
 
@@ -177,23 +201,22 @@ def render_advanced_visualization(analysis_data, selected_index):
     """高级Sankey图生成"""
     c, score_A, score_B, pure_score_A, pure_score_B = analysis_data[selected_index]
     
+    # 调整数据结构以适应新的模式匹配逻辑
+    score_A_value = score_A if isinstance(score_A, (int, float)) else score_A[0]
+    score_B_value = score_B if isinstance(score_B, (int, float)) else score_B[0]
+    
     # 主Sankey图
     fig = go.Figure(go.Sankey(
         node=dict(
             pad=15,
             thickness=20,
-            label=[f'PATIENT:{selected_index+1}', 'Positive P', 'Negative N'] + 
-                  [f'P{i}' for i in range(len(score_A[1]))] +
-                  [f'N{i}' for i in range(len(score_B[1]))],
-            color=['#ECEFF1', '#F8BBD0', '#DCEDC8'] + 
-                  ['#FFEBEE']*len(score_A[1]) + 
-                  ['#F1F8E9']*len(score_B[1])
+            label=[f'PATIENT:{selected_index+1}', 'Positive P', 'Negative N'],
+            color=['#ECEFF1', '#F8BBD0', '#DCEDC8']
         ),
         link=dict(
-            source=[0,0] + [1]*len(score_A[1]) + [2]*len(score_B[1]),
-            target=[1,2] + list(range(3, 3+len(score_A[1]))) + 
-                   list(range(3+len(score_A[1]), 3+len(score_A[1])+len(score_B[1]))),
-            value=[score_A[0], score_B[0]] + [v[-1] for v in score_A[1]] + [v[-1] for v in score_B[1]]
+            source=[0, 0],
+            target=[1, 2],
+            value=[score_A_value, score_B_value]
         )
     ))
     
@@ -202,18 +225,13 @@ def render_advanced_visualization(analysis_data, selected_index):
         node=dict(
             pad=15,
             thickness=20,
-            label=[f'PATIENT:{selected_index+1}', 'Pure P', 'Pure N'] + 
-                  [f'PP{i}' for i in range(len(pure_score_A[1]))] +
-                  [f'PN{i}' for i in range(len(pure_score_B[1]))],
-            color=['#ECEFF1', '#F8BBD0', '#DCEDC8'] + 
-                  ['#FFEBEE']*len(pure_score_A[1]) + 
-                  ['#F1F8E9']*len(pure_score_B[1])
+            label=[f'PATIENT:{selected_index+1}', 'Pure P', 'Pure N'],
+            color=['#ECEFF1', '#F8BBD0', '#DCEDC8']
         ),
         link=dict(
-            source=[0,0] + [1]*len(pure_score_A[1]) + [2]*len(pure_score_B[1]),
-            target=[1,2] + list(range(3, 3+len(pure_score_A[1]))) + 
-                   list(range(3+len(pure_score_A[1]), 3+len(pure_score_A[1])+len(pure_score_B[1]))),
-            value=[pure_score_A[0], pure_score_B[0]] + [v[-1] for v in pure_score_A[1]] + [v[-1] for v in pure_score_B[1]]
+            source=[0, 0],
+            target=[1, 2],
+            value=[pure_score_A, pure_score_B]
         )
     ))
     
@@ -238,96 +256,103 @@ def main_interface():
         uploaded_file = st.file_uploader("Upload Files（CSV）", type="csv")
 
     if uploaded_file:
-        data = load_and_preprocess(uploaded_file)
-        analyzer = DiagnosisAnalyzer(data.values)
-        
-        # 存储处理后的数据到session state
-        st.session_state.processed_data = {
-            'A': data[:len(data)//2].values,
-            'B': data[len(data)//2:].values,
-            'C': data.sample(frac=0.2).values
-        }
-
-        # 实时分析面板
-        st.markdown("实时分析面板")
-        col1, col2, col3 = st.columns(3)
-
-        with col1:
-            with st.container():
-                st.markdown("🧪 检测样本数")
-                st.markdown(f'<div class="metric-card">{len(data):,}</div>', unsafe_allow_html=True)
-
-        with col2:
-            with st.container():
-                st.markdown("⚠️ 风险提示")
-                risk_sample = data.sample(1).iloc[0]
-                st.markdown(f'''
-                    <div class="metric-card">
-                        <div>最近识别病例：</div>
-                        <div class="risk-badge high-risk">高危</div>
-                    </div>
-                ''', unsafe_allow_html=True)
-
-        # 扩展标签页
-        tab_analysis, tab_visual, tab_adv_visual, tab_report = st.tabs([
-            "📊 基础分析", "📈 模式流向", "🔍 高级可视化", "📝 风险报告"
-        ])
-
-        with tab_analysis:
-            with st.spinner('正在分析数据...'):
-                pos_patterns = analyzer.find_patterns('positive')
-                neg_patterns = analyzer.find_patterns('negative')
-
-            st.dataframe(
-                pd.DataFrame.from_dict(pos_patterns, orient='index', columns=['强度', '关联病例']),
-                height=400,
-                use_container_width=True
-            )
-
-        with tab_visual:
-            sample_data = data.sample(1).iloc[0].values
-            analysis_result = {
-                'pos_score': len(sample_data) * 150,
-                'neg_score': len(sample_data) * 75
+        try:
+            data = load_and_preprocess(uploaded_file)
+            
+            if len(data.shape) != 2:
+                st.error("上传的数据格式不正确。请确保数据是2维表格形式。")
+                return
+                
+            st.info(f"数据维度: {data.shape[0]} 样本, {data.shape[1]} 特征")
+            
+            analyzer = DiagnosisAnalyzer(data.values)
+            
+            # 存储处理后的数据到session state
+            st.session_state.processed_data = {
+                'A': data[:len(data)//2].values,
+                'B': data[len(data)//2:].values,
+                'C': data.sample(n=min(20, len(data)), replace=False).values
             }
-            st.plotly_chart(render_sankey(analysis_result), use_container_width=True)
 
-        with tab_adv_visual:
-            if 'processed_data' in st.session_state:
-                patterns_A, patterns_B = analyzer.get_advanced_patterns()[0]
-                pure_A, pure_B = analyzer.get_advanced_patterns()[1]
-                
-                specific_instances = find_specific_instances(
-                    st.session_state.processed_data['C'],
-                    patterns_A,
-                    patterns_B,
-                    pure_A,
-                    pure_B
+            # 实时分析面板
+            st.markdown("实时分析面板")
+            col1, col2, col3 = st.columns(3)
+
+            with col1:
+                with st.container():
+                    st.markdown("🧪 检测样本数")
+                    st.markdown(f'<div class="metric-card">{len(data):,}</div>', unsafe_allow_html=True)
+
+            with col2:
+                with st.container():
+                    st.markdown("⚠️ 风险提示")
+                    risk_sample = data.sample(1).iloc[0]
+                    st.markdown(f'''
+                        <div class="metric-card">
+                            <div>最近识别病例：</div>
+                            <div class="risk-badge high-risk">高危</div>
+                        </div>
+                    ''', unsafe_allow_html=True)
+
+            # 扩展标签页
+            tab_analysis, tab_visual, tab_adv_visual, tab_report = st.tabs([
+                "📊 基础分析", "📈 模式流向", "🔍 高级可视化", "📝 风险报告"
+            ])
+
+            with tab_analysis:
+                with st.spinner('正在分析数据...'):
+                    pos_patterns = analyzer.find_patterns('positive')
+                    neg_patterns = analyzer.find_patterns('negative')
+
+                st.dataframe(
+                    pd.DataFrame.from_dict(pos_patterns, orient='index', columns=['强度', '关联病例']),
+                    height=400,
+                    use_container_width=True
                 )
-                
-                total_instances = len(specific_instances)
-                choices = [f"病例 {i+1}" for i in range(total_instances)]
-                selected = st.selectbox("选择分析病例", options=choices)
-                
-                if selected:
-                    index = int(selected.split()[-1]) - 1
-                    fig, pure_fig = render_advanced_visualization(specific_instances, index)
-                    
-                    st.subheader("诊断模式流向")
-                    st.plotly_chart(fig, use_container_width=True)
-                    
-                    st.subheader("纯净模式分析")
-                    st.plotly_chart(pure_fig, use_container_width=True)
 
-        with tab_report:
-            if 'processed_data' in st.session_state:
-                risk_data = []
-                for idx, (c, _, _, pure_A, pure_B) in enumerate(specific_instances):
-                    risk_score = max(pure_A, pure_B)
-                    risk_level, _ = analyzer.get_risk_level(risk_score)
+            with tab_visual:
+                sample_data = data.sample(1).iloc[0].values
+                analysis_result = {
+                    'pos_score': len(sample_data) * 150,
+                    'neg_score': len(sample_data) * 75
+                }
+                st.plotly_chart(render_sankey(analysis_result), use_container_width=True)
+
+            with tab_adv_visual:
+                if 'processed_data' in st.session_state:
+                    patterns_A, patterns_B = analyzer.get_advanced_patterns()[0]
+                    pure_A, pure_B = analyzer.get_advanced_patterns()[1]
                     
-                    risk_data.append({
-                        "ID": idx+1,
+                    specific_instances = find_specific_instances(
+                        st.session_state.processed_data['C'],
+                        patterns_A,
+                        patterns_B,
+                        pure_A,
+                        pure_B
+                    )
+                    
+                    total_instances = len(specific_instances)
+                    choices = [f"病例 {i+1}" for i in range(total_instances)]
+                    selected = st.selectbox("选择分析病例", options=choices)
+                    
+                    if selected:
+                        index = int(selected.split()[-1]) - 1
+                        fig, pure_fig = render_advanced_visualization(specific_instances, index)
+                        
+                        st.subheader("诊断模式流向")
+                        st.plotly_chart(fig, use_container_width=True)
+                        
+                        st.subheader("纯净模式分析")
+                        st.plotly_chart(pure_fig, use_container_width=True)
+
+            with tab_report:
+                if 'processed_data' in st.session_state:
+                    risk_data = []
+                    for idx, (c, _, _, pure_A, pure_B) in enumerate(specific_instances):
+                        risk_score = max(pure_A, pure_B)
+                        risk_level, _ = analyzer.get_risk_level(risk_score)
+                        
+                        risk_data.append({ "ID": idx+1,
                         "阳性分数": pure_A,
                         "阴性分数": pure_B,
                         "综合风险": risk_level,
