@@ -4,6 +4,9 @@ import pandas as pd
 import time
 from sklearn import metrics
 import plotly.graph_objects as go
+from concurrent.futures import ProcessPoolExecutor
+from multiprocessing import cpu_count
+from functools import partial
 from collections import defaultdict
 
 # 配置頁面
@@ -62,6 +65,11 @@ def load_and_preprocess(uploaded_file):
     print(f"Data processed in {time.time()-start:.2f}s")
     return processed
 
+# 並行計算
+def parallel_score_calc(data_chunk, ref_patterns):
+    """并行評分計算"""
+    return [len(set(item) & ref_patterns) ** 2 for item in data_chunk]
+
 # 核心分析邏輯
 class DiagnosisAnalyzer:
     def __init__(self, data):
@@ -69,12 +77,12 @@ class DiagnosisAnalyzer:
         self.pattern_cache = {}
 
     @st.cache_data
-    def find_patterns(self, class_type):
+    def find_patterns(_self, class_type):
         """帶緩存的模式發現"""
         patterns = defaultdict(lambda: [0, set()])
-        for i in range(len(self.data)):
-            for j in range(i, len(self.data)):
-                intersect = tuple(set(self.data[i]) & set(self.data[j]))
+        for i in range(len(_self.data)):
+            for j in range(i, len(_self.data)):
+                intersect = tuple(set(_self.data[i]) & set(_self.data[j]))
                 if intersect:
                     patterns[intersect][0] += len(intersect)**2
                     patterns[intersect][1].update([i, j])
@@ -118,17 +126,6 @@ def render_sankey(analysis_data):
     )
     return fig
 
-# 繪製 ROC 曲線
-def plot_roc_curve(y_true, y_scores):
-    fpr, tpr, _ = metrics.roc_curve(y_true, y_scores)
-    roc_auc = metrics.auc(fpr, tpr)
-
-    fig_roc = go.Figure()
-    fig_roc.add_trace(go.Scatter(x=fpr, y=tpr, mode='lines', name='ROC 曲線'))
-    fig_roc.add_trace(go.Scatter(x=[0, 1], y=[0, 1], mode='lines', line=dict(dash='dash'), name='隨機猜測'))
-    fig_roc.update_layout(title=f'ROC 曲線 (AUC = {roc_auc:.2f})', xaxis_title='假陽性率', yaxis_title='真陽性率')
-    return fig_roc
-
 # 主界面布局
 def main_interface():
     st.title('Misdiagnosis Detection Tool')
@@ -142,17 +139,14 @@ def main_interface():
         data = load_and_preprocess(uploaded_file)
         analyzer = DiagnosisAnalyzer(data.values)
 
-        # 添加下拉式選單
-        patient_ids = data.index.tolist()
-        selected_patient = st.selectbox("選擇病患", patient_ids)
-
-        # 實時分析顯示
+        # 實時分析
         st.markdown("實時分析面板")
         col1, col2, col3 = st.columns(3)
 
         with col1:
-            st.markdown("🧪 檢測樣本數")
-            st.markdown(f'<div class="metric-card">{len(data):,}</div>', unsafe_allow_html=True)
+            with st.container():
+                st.markdown("🧪 檢測樣本數")
+                st.markdown(f'<div class="metric-card">{len(data):,}</div>', unsafe_allow_html=True)
 
         with col2:
             with st.container():
@@ -176,20 +170,6 @@ def main_interface():
                 </div>
             ''', unsafe_allow_html=True)
 
-        # 根據選擇的病患顯示桑基圖
-        sample_data = data.loc[selected_patient].values
-        analysis_result = {
-            'pos_score': len(sample_data) * 150,
-            'neg_score': len(sample_data) * 75
-        }
-        st.plotly_chart(render_sankey(analysis_result), use_container_width=True)
-
-        # 計算和顯示 ROC 曲線
-        y_true = np.random.randint(0, 2, size=len(data))  # 假設的真實標籤
-        y_scores = np.random.rand(len(data))  # 假設的預測分數
-
-        fig_roc = plot_roc_curve(y_true, y_scores)
-        st.plotly_chart(fig_roc, use_container_width=True)
         # 核心分析流程
         st.markdown("## 深度模式分析")
         tab_analysis, tab_visual, tab_report = st.tabs(["📊 Data Analysis", "📈 Visualization", "📝 Risk Table"])
@@ -223,10 +203,6 @@ def main_interface():
                     cols[0].markdown(f"**病例ID**: {idx}")
                     cols[1].markdown(f"**風險等級**: <span style='color:{color};font-weight:bold'>{level}</span>", unsafe_allow_html=True)
                     cols[2].progress(score/4000, text=f"風險指數: {score}/4000")
-
-
-if __name__ == "__main__":
-    main_interface()
 
 
 if __name__ == "__main__":
