@@ -151,13 +151,24 @@ def main_interface():
         with col2:
             with st.container():
                 st.markdown("⚠️ 風險提示")
-                risk_sample = data.sample(1).iloc[0]
-                st.markdown(f'''
-                    <div class="metric-card">
-                        <div>最近識別病例：</div>
-                        <div class="risk-badge high-risk">高危</div>
-                    </div>
-                ''', unsafe_allow_html=True)
+        
+            # 計算四個風險程度的人數
+            risk_counts = {'Very High': 0, 'High': 0, 'Low': 0, 'Very Low': 0}
+            for idx, sample in data.iterrows():
+                score = np.random.randint(1000, 4000)  # 示例分数计算
+                level, _ = analyzer.get_risk_level(score)
+                risk_counts[level] += 1
+        
+            # 顯示風險提示
+            st.markdown(f'''
+                <div class="metric-card">
+                    <div>風險分佈：</div>
+                    <div class="risk-badge high-risk">高危: {risk_counts['Very High']}</div>
+                    <div class="risk-badge medium-risk">中危: {risk_counts['High']}</div>
+                    <div class="risk-badge low-risk">低危: {risk_counts['Low']}</div>
+                    <div class="risk-badge very-low-risk">極低危: {risk_counts['Very Low']}</div>
+                </div>
+            ''', unsafe_allow_html=True)
 
         # 核心分析流程
         st.markdown("## 深度模式分析")
