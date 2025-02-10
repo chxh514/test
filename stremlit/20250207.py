@@ -190,6 +190,44 @@ def main_interface():
 
         fig_roc = plot_roc_curve(y_true, y_scores)
         st.plotly_chart(fig_roc, use_container_width=True)
+        # 核心分析流程
+        st.markdown("## 深度模式分析")
+        tab_analysis, tab_visual, tab_report = st.tabs(["📊 Data Analysis", "📈 Visualization", "📝 Risk Table"])
+
+        with tab_analysis:
+            with st.spinner('正在分析數據...'):
+                pos_patterns = analyzer.find_patterns('positive')
+                neg_patterns = analyzer.find_patterns('negative')
+
+            st.dataframe(
+                pd.DataFrame.from_dict(pos_patterns, orient='index', columns=['强度', '關聯病例']),
+                height=400,
+                use_container_width=True
+            )
+
+        with tab_visual:
+            sample_data = data.sample(1).iloc[0].values
+            analysis_result = {
+                'pos_score': len(sample_data) * 150,
+                'neg_score': len(sample_data) * 75
+            }
+            st.plotly_chart(render_sankey(analysis_result), use_container_width=True)
+
+        with tab_report:
+            for idx, sample in data.iterrows():
+                score = np.random.randint(1000, 4000)
+                level, color = analyzer.get_risk_level(score)
+
+                with st.container():
+                    cols = st.columns([1, 3, 2])
+                    cols[0].markdown(f"**病例ID**: {idx}")
+                    cols[1].markdown(f"**風險等級**: <span style='color:{color};font-weight:bold'>{level}</span>", unsafe_allow_html=True)
+                    cols[2].progress(score/4000, text=f"風險指數: {score}/4000")
+
+
+if __name__ == "__main__":
+    main_interface()
+
 
 if __name__ == "__main__":
     main_interface()
