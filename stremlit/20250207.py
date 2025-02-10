@@ -322,6 +322,9 @@ def main_interface():
                 if 'processed_data' in st.session_state:
                     patterns_A, patterns_B = analyzer.get_advanced_patterns()[0]
                     pure_A, pure_B = analyzer.get_advanced_patterns()[1]
+
+                    # Add debug information here
+                    st.write(type(patterns_A), type(patterns_B), type(pure_A), type(pure_B))
                     
                     specific_instances = find_specific_instances(
                         st.session_state.processed_data['C'],
